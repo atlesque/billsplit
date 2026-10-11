@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "billsplit",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+
+  "routes": [{ "pattern": "billsplit.atlesque.dev", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "billsplit",
+      "database_id": "ab8463b4-e203-4bbb-8bd5-403a6ee1a339",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // The Worker runs first for /api/* only; everything else is the static SPA.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"],
+    "not_found_handling": "single-page-application"
+  },
+
+  // Sign-in emails. EMAIL_FROM must be on a domain onboarded to Cloudflare Email Sending.
+  "send_email": [{ "name": "EMAIL" }],
+
+  // Cleans up expired sign-in codes and sessions once a day.
+  "triggers": { "crons": ["17 3 * * *"] },
+
+  "vars": {
+    "APP_URL": "https://billsplit.atlesque.dev",
+    "EMAIL_FROM": "billsplit@atlesque.dev"
+  }
+}

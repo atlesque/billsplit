@@ -1,0 +1,21 @@
+{
+  "name": "billsplit",
+  "private": true,
+  "license": "MIT",
+  "description": "Split group expenses with friends. A Tricount-style app on Cloudflare Workers and D1.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "types": "wrangler types --strict-vars=false",
+    "test": "node --test \"test/*.test.ts\"",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "wrangler": "^4.146.0"
+  },
+  "packageManager": "pnpm@10.32.1"
+}
