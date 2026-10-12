@@ -165,6 +165,10 @@ legend { font-weight: 600; margin-bottom: .5rem; padding: 0; }
 .checklist li.done .check { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
 .checklist li.current .check { border-color: var(--accent); color: var(--accent); }
 
+.share-card { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.link-row { display: flex; gap: .5rem; flex-wrap: wrap; }
+.link-row input { flex: 1 1 14rem; font-size: .88rem; }
+.share-card [data-reset-link] { margin-top: .5rem; padding-left: 0; }
 .history { margin-top: 1rem; }
 .history summary { cursor: pointer; font-weight: 600; padding: .5rem 0; }
 .pill.ok { background: color-mix(in srgb, var(--pos) 16%, transparent); color: var(--pos); }

@@ -1,7 +1,7 @@
 import { audit } from "./audit";
 import type { User } from "./auth";
 import { HttpError, now, optionalText, randomId, readJson, text } from "./http";
-import { inviteStatus, type InviteRow } from "./invite-status";
+import { activeGroupLink, insertGroupLink } from "./invites";
 import { balances, settle } from "./split";
 
 export type Group = {
@@ -111,36 +111,17 @@ export async function listGroups(env: Env, user: User): Promise<Response> {
 
 export async function getGroup(env: Env, user: User, groupId: string): Promise<Response> {
   const { group, meId } = await groupForUser(env, groupId, user);
-  const [memberRows, expenses, inviteRows] = await Promise.all([
+  const [memberRows, expenses, shareToken] = await Promise.all([
     members(env, groupId),
     expensesWithShares(env, groupId),
-    env.DB.prepare(
-      `SELECT i.*, cu.name AS created_by_name, uu.name AS used_by_name, uu.email AS used_by_email
-       FROM invites i LEFT JOIN users cu ON cu.id = i.created_by LEFT JOIN users uu ON uu.id = i.used_by
-       WHERE i.group_id = ? ORDER BY i.created_at DESC`,
-    )
-      .bind(groupId)
-      .all<InviteRow & { created_by_name: string | null; used_by_name: string | null; used_by_email: string | null }>(),
+    activeGroupLink(env, groupId),
   ]);
   const balanceMap = balances(
     memberRows.map((m) => m.id),
     expenses.map((e) => ({ paidBy: e.paidBy, amount: e.amount, shares: e.shares })),
   );
-  const invites = inviteRows.results.map((i) => ({
-    id: i.id,
-    token: i.token,
-    memberId: i.member_id,
-    label: i.label,
-    status: inviteStatus(i),
-    createdAt: i.created_at,
-    createdBy: i.created_by_name,
-    expiresAt: i.expires_at,
-    usedAt: i.used_at,
-    usedBy: i.used_by_name || i.used_by_email,
-    revokedAt: i.revoked_at,
-  }));
   return Response.json({
-    group: { ...group, isOwner: group.created_by === user.id },
+    group: { ...group, isOwner: group.created_by === user.id, shareToken },
     meId,
     members: memberRows.map((m) => ({
       id: m.id,
@@ -149,7 +130,6 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
       isMe: m.id === meId,
       isOwner: m.user_id === group.created_by,
       email: m.email,
-      activeInvite: invites.find((i) => i.memberId === m.id && i.status === "active")?.token ?? null,
       balance: balanceMap.get(m.id) ?? 0,
       paid: expenses.filter((e) => e.kind === "expense" && e.paidBy === m.id).reduce((a, e) => a + e.amount, 0),
       spent: expenses
@@ -157,7 +137,6 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
         .reduce((a, e) => a + (e.shares.find((s) => s.memberId === m.id)?.amount ?? 0), 0),
     })),
     expenses,
-    invites,
     settlements: settle(balanceMap),
   });
 }
@@ -200,8 +179,9 @@ export async function createGroup(request: Request, env: Env, user: User): Promi
     ),
   ]);
   if (!user.name) await env.DB.prepare("UPDATE users SET name = ? WHERE id = ?").bind(myName, user.id).run();
+  const link = await insertGroupLink(env, id, user.id);
   await audit(env, request, user, "group.created", { groupId: id, target: id, details: { name, currency: cur, people: [myName, ...others] } });
-  return Response.json({ id }, { status: 201 });
+  return Response.json({ id, shareToken: link.token }, { status: 201 });
 }
 
 export async function updateGroup(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
@@ -298,6 +278,7 @@ export async function removeMember(request: Request, env: Env, user: User, group
   if (used) throw new HttpError(400, `${member.name} is in some expenses. Remove them from those expenses first.`);
   await env.DB.batch([
     env.DB.prepare("UPDATE invites SET revoked_at = ? WHERE member_id = ? AND used_at IS NULL AND revoked_at IS NULL").bind(now(), memberId),
+    env.DB.prepare("UPDATE invites SET member_id = NULL WHERE member_id = ?").bind(memberId),
     env.DB.prepare("DELETE FROM members WHERE id = ?").bind(memberId),
   ]);
   await audit(env, request, user, "member.removed", { groupId, target: memberId, details: { name: member.name, hadAccount: Boolean(member.user_id) } });

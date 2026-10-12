@@ -28,7 +28,7 @@ export async function overview(env: Env): Promise<Response> {
        (SELECT COUNT(*) FROM members WHERE user_id IS NOT NULL) AS joined_people,
        (SELECT COUNT(*) FROM expenses) AS expenses,
        (SELECT COUNT(*) FROM invites WHERE used_at IS NULL AND revoked_at IS NULL AND expires_at > ?3) AS open_invites,
-       (SELECT COUNT(*) FROM invites WHERE used_at IS NOT NULL) AS used_invites,
+       (SELECT COALESCE(SUM(use_count), 0) FROM invites) AS link_joins,
        (SELECT COUNT(*) FROM email_log WHERE created_at > ?2) AS emails_24h,
        (SELECT COUNT(*) FROM email_log WHERE created_at > ?2 AND status = 'failed') AS emails_failed_24h,
        (SELECT COUNT(*) FROM login_requests WHERE created_at > ?2) AS signins_24h,

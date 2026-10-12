@@ -6,19 +6,20 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 
 ## How it works
 
-**Starting a group.** Enter your email and open the sign-in link (or type the 6-digit code). The first sign-in creates your account. Then create a group, add the people you share costs with, and send each person their invite link. A checklist on the group page walks you through these steps.
+**Starting a group.** Enter your email and open the sign-in link (or type the 6-digit code). The first sign-in creates your account. Create a group, and you get its share link straight away. Drop it into your group chat.
 
-**Joining a group.** Open the invite link. If you're signed out, the page shows the group and asks for your email, and after you sign in you land back on the invite, even if you opened the email on another device. Tap “Join as …” and you're in.
+**Joining a group.** Open the group's link. If you're signed out, the page shows the group and asks for your email, and after signing in you land back on the link, even if you opened the email on another device. Pick your name if someone already added you, or join under your own name.
 
 ## Features
 
 - **One email sign-in flow** for new and existing accounts: a magic link plus a 6-digit code.
-- **Single-use invite links.** Each link has a random 144-bit token and is usually tied to one person in the group. It stops working once someone joins with it, can be cancelled, and expires after 30 days. Used, cancelled and expired links stay in the group's invite history.
+- **One share link per group.** Everyone uses the same link. It has a random 144-bit token and doesn't expire on its own. Anyone in the group can copy it, and the group's creator can reset it, which makes the old link stop working. Personal single-use links from earlier versions keep working until used.
+- **People without the app** can be added by name and included in splits. If they join later, they pick their name from the list.
 - **Flexible splits.** Split equally, by shares, or by exact amounts. Leftover cents are spread fairly, so shares always add up to the total. You can also record payments between people.
 - **Balances and settle-up.** See who is owed what and a short list of payments that settles everyone. “Mark paid” records a payment.
 - **CSV export** per group.
-- **Admin area** at `/admin`, behind Cloudflare Access and limited to emails listed in `ADMIN_EMAILS`. It shows users, groups and their people and invites, every sign-in request with its email delivery and verification status, and the full audit log.
-- **Audit log** of every action: sign-in emails sent or failed, wrong codes, sign-ins, registrations, group/person/invite/expense changes. Entries record who did what, in which group, and from which IP address.
+- **Admin area** at `/admin`, behind Cloudflare Access and limited to emails listed in `ADMIN_EMAILS`. It shows users, groups with their people and links (including how many joined through each), every sign-in request with its email delivery and verification status, and the full audit log.
+- **Audit log** of every action: sign-in emails sent or failed, wrong codes, sign-ins, registrations, group/person/link/expense changes. Entries record who did what, in which group, and from which IP address.
 
 ## Stack
 

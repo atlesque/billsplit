@@ -25,7 +25,7 @@ import {
   updateGroup,
 } from "./groups";
 import { errorResponse, HttpError } from "./http";
-import { createInvite, getInvite, joinInvite, revokeInvite } from "./invites";
+import { getInvite, getOrCreateGroupLink, joinInvite, resetGroupLink, revokeInvite } from "./invites";
 
 async function route(request: Request, env: Env, url: URL): Promise<Response> {
   const { method } = request;
@@ -93,7 +93,10 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
       case "DELETE members/:id":
         return removeMember(request, env, user, groupId, itemId);
       case "POST invites":
-        return createInvite(request, env, user, groupId);
+        return getOrCreateGroupLink(request, env, user, groupId);
+      case "POST invites/:id":
+        if (itemId === "reset") return resetGroupLink(request, env, user, groupId);
+        break;
       case "DELETE invites/:id":
         return revokeInvite(request, env, user, groupId, itemId);
       case "POST expenses":

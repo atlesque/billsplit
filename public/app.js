@@ -362,12 +362,12 @@ async function renderGroups() {
       html`<div class="card narrow">
         <h1>Create your first group</h1>
         <ol class="steps-plain">
-          <li>Create a group and add the people you're splitting with.</li>
-          <li>Send each person their invite link.</li>
+          <li>Create a group.</li>
+          <li>Share the group link in your group chat.</li>
           <li>Add expenses. BillSplit works out who owes whom.</li>
         </ol>
         <a class="btn primary block" href="/new" data-link>Create a group</a>
-        <p class="muted small" style="margin-top:1rem">Got an invite link from a friend? Open it to join their group.</p>
+        <p class="muted small" style="margin-top:1rem">Got a group link from a friend? Open it to join their group.</p>
       </div>`,
     );
     return;
@@ -400,63 +400,35 @@ async function renderGroups() {
 function renderNewGroup() {
   render(
     app,
-    html`<a href="/" data-link class="small back">← Your groups</a>
-      <h1>Create a group</h1>
-      <form class="card" id="new-group" novalidate>
-        <div class="grid2">
+    html`<div class="narrow"><a href="/" data-link class="small back">← Your groups</a>
+      <div class="card">
+        <h1>Create a group</h1>
+        <p class="muted small">Next you'll get one link to share with everyone in the group.</p>
+        <form id="new-group" novalidate>
           <div class="field"><label for="g-name">Group name</label><input id="g-name" name="name" maxlength="80" placeholder="e.g. Lisbon trip" required /></div>
-          <div class="field"><label for="g-cur">Currency</label><select id="g-cur" name="currency">${CURRENCIES.map((c) => html`<option ${c === "EUR" ? raw("selected") : ""}>${c}</option>`)}</select></div>
-        </div>
-        <h2>People</h2>
-        <p class="muted small">Add everyone who shares costs. You'll get an invite link for each person next. People without an account can still be part of the split.</p>
-        <div class="field"><label for="g-me">You</label><input id="g-me" name="myName" maxlength="60" value="${me.name}" required /></div>
-        <div id="people"></div>
-        <button type="button" class="btn small" id="add-row">+ Add person</button>
-        <p class="error"></p>
-        <button class="btn primary block" style="margin-top:1rem">Create group</button>
-      </form>`,
+          <div class="grid2">
+            <div class="field"><label for="g-me">Your name</label><input id="g-me" name="myName" maxlength="60" value="${me.name}" required /></div>
+            <div class="field"><label for="g-cur">Currency</label><select id="g-cur" name="currency">${CURRENCIES.map((c) => html`<option ${c === "EUR" ? raw("selected") : ""}>${c}</option>`)}</select></div>
+          </div>
+          <p class="error"></p>
+          <button class="btn primary block">Create group</button>
+        </form>
+      </div></div>`,
   );
   const form = $("#new-group");
-  const people = $("#people");
-  let n = 0;
-  const addRow = (focus = true) => {
-    n += 1;
-    const row = document.createElement("div");
-    row.className = "field person-row";
-    render(
-      row,
-      html`<label for="p-${n}" class="visually-hidden">Person ${n}</label>
-        <input id="p-${n}" name="person" maxlength="60" placeholder="Name" autocomplete="off" />
-        <button type="button" class="btn ghost small" aria-label="Remove">✕</button>`,
-    );
-    $("button", row).onclick = () => row.remove();
-    $("input", row).onkeydown = (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        addRow();
-      }
-    };
-    people.append(row);
-    if (focus) $("input", row).focus();
-  };
-  addRow(false);
-  addRow(false);
-  $("#add-row").onclick = () => addRow();
   form.name.focus();
   form.onsubmit = (e) => {
     e.preventDefault();
     formError(form);
-    const members = $$('input[name="person"]', form).map((i) => i.value.trim()).filter(Boolean);
     withBusy($("button.primary", form), async () => {
       try {
         const { id } = await api("/groups", {
           method: "POST",
-          body: { name: form.name.value, myName: form.myName.value, currency: form.currency.value, members },
+          body: { name: form.name.value, myName: form.myName.value, currency: form.currency.value },
         });
         if (!me.name) me.name = form.myName.value.trim();
         renderAccount();
-        navigate(`/g/${id}?tab=people`, { replace: true });
-        toast("Group created");
+        navigate(`/g/${id}?share=1`, { replace: true });
       } catch (err) {
         formError(form, err);
       }
@@ -486,35 +458,9 @@ async function renderGroup(groupId) {
   const mine = byId.get(meId);
   const others = members.filter((m) => !m.isMe);
 
-  // Setup checklist, shown until all three steps are done.
-  const steps = [
-    { done: others.length > 0, label: "Add the people you're splitting with", action: html`<a class="btn small" href="/g/${group.id}?tab=people" data-link>Add people</a>` },
-    {
-      done: others.length > 0 && others.every((m) => m.claimed || m.activeInvite),
-      label: "Send each person their invite link",
-      action: (() => {
-        const next = others.find((m) => !m.claimed && !m.activeInvite);
-        return next ? html`<button class="btn small" data-invite="${next.id}">Invite ${next.name}</button>` : "";
-      })(),
-    },
-    { done: expenses.length > 0, label: "Add your first expense", action: html`<button class="btn small" data-add-expense>Add expense</button>` },
-  ];
-  const nextStep = steps.findIndex((s) => !s.done);
-  const checklist =
-    nextStep === -1
-      ? ""
-      : html`<div class="card checklist">
-          <h2>Set up your group</h2>
-          <ol>
-            ${steps.map(
-              (s, i) => html`<li class="${s.done ? "done" : i === nextStep ? "current" : ""}">
-                <span class="check" aria-hidden="true">${s.done ? "✓" : i + 1}</span>
-                <span class="grow">${s.label}${s.done ? html`<span class="visually-hidden"> (done)</span>` : ""}</span>
-                ${i === nextStep ? s.action : ""}
-              </li>`,
-            )}
-          </ol>
-        </div>`;
+  // Until someone else has joined, the share link is the main call to action.
+  const joined = members.filter((m) => m.claimed).length;
+  const shareCard = joined < 2 && tab !== "people" ? groupLinkCard(group, { compact: false }) : "";
 
   let body;
   if (tab === "expenses") body = expensesTab(data, name);
@@ -532,7 +478,7 @@ async function renderGroup(groupId) {
         <div class="stat"><div class="label">Total spent</div><div class="value">${money(total, cur)}</div></div>
         <div class="stat"><div class="label">${mine.balance >= 0 ? "You're owed" : "You owe"}</div><div class="value ${mine.balance > 0 ? "pos" : mine.balance < 0 ? "neg" : ""}">${money(Math.abs(mine.balance), cur)}</div></div>
       </div>
-      ${checklist}
+      ${shareCard}
       <nav class="segmented" aria-label="Group sections">
         ${TABS.map(([key, label]) => html`<a href="/g/${group.id}?tab=${key}" data-link aria-current="${tab === key ? "page" : "false"}">${label}</a>`)}
       </nav>
@@ -550,19 +496,11 @@ async function renderGroup(groupId) {
         openExpense(data, { kind: "transfer", title: "Payment", amount: s.amount, paidBy: s.from, date: today(), splitMode: "equal", shares: [{ memberId: s.to, weight: 1 }] }, refresh, true);
       }),
   );
-  $$("[data-invite]").forEach(
-    (b) =>
-      (b.onclick = () =>
-        withBusy(b, async () => {
-          try {
-            const res = await api(`/groups/${group.id}/invites`, { method: "POST", body: { memberId: b.dataset.invite } });
-            await refresh();
-            showInviteDialog(res.token, res.label, group.name);
-          } catch (err) {
-            toast(err.message);
-          }
-        })),
-  );
+  bindGroupLink(group, refresh);
+  if (new URLSearchParams(location.search).get("share") === "1") {
+    history.replaceState(null, "", `/g/${group.id}`);
+    showShareDialog(group);
+  }
   if (tab === "people") bindPeople(data, refresh);
   if (tab === "settings") bindSettings(data, refresh);
 }
@@ -641,125 +579,100 @@ function balancesTab({ members, settlements, meId, group }, name) {
     </ul>`;
 }
 
-const INVITE_STATUS = {
-  active: "Not used yet",
-  used: "Used",
-  revoked: "Cancelled",
-  expired: "Expired",
-};
+const groupLinkUrl = (group) => (group.shareToken ? inviteUrl(group.shareToken) : "");
 
-function peopleTab({ group, members, invites }) {
-  const pending = members.filter((m) => !m.claimed);
-  return html`<p class="muted small">Send each person their own invite link. Each link works once: when they open it and sign in, they join as that person.</p>
-    <ul class="list">
-      ${members.map((m) => {
-        let status;
-        let action = "";
-        if (m.isMe) status = html`You${m.isOwner ? " · created this group" : ""}`;
-        else if (m.claimed) status = html`Joined${m.email ? ` · ${m.email}` : ""}`;
-        else if (m.activeInvite) {
-          status = html`<span class="pill warn">Invited</span> waiting for them to join`;
-          action = html`<button class="btn small" data-copy="${m.activeInvite}">Copy link</button>`;
-        } else {
-          status = html`<span class="pill">Not invited</span>`;
-          action = html`<button class="btn small primary" data-invite="${m.id}">Invite</button>`;
-        }
-        return html`<li class="row">
-          <span class="avatar">${initials(m.name)}</span>
-          <span class="grow"><span class="title">${m.name}</span><span class="muted small">${status}</span></span>
-          ${action}
-          <button class="btn small ghost" data-edit="${m.id}" aria-label="Edit ${m.name}">Edit</button>
-        </li>`;
-      })}
-    </ul>
-    <form class="add-row" id="add-member">
-      <label for="new-person" class="visually-hidden">Name</label>
-      <input id="new-person" name="name" placeholder="Add a person" maxlength="60" required />
-      <button class="btn">Add</button>
-    </form>
-    <p class="error" id="member-error"></p>
-    <div class="card">
-      <h2>Someone not on the list?</h2>
-      <p class="muted small">Create a link that lets one person join and add themselves.</p>
-      <button class="btn" id="open-invite">Create invite link</button>
+/** The group's share link: one link for everyone, e.g. dropped into a group chat. */
+function groupLinkCard(group, { compact } = {}) {
+  return html`<div class="card share-card">
+    <h2>Invite people to ${group.name}</h2>
+    <p class="muted small">Share this link in your group chat. Anyone who opens it can sign in or create an account, then join this group.</p>
+    <div class="link-row">
+      <label for="group-link-${compact ? "b" : "a"}" class="visually-hidden">Group link</label>
+      <input id="group-link-${compact ? "b" : "a"}" readonly value="${groupLinkUrl(group)}" data-link-input />
+      <button class="btn primary" data-copy-link>Copy link</button>
+      ${navigator.share ? html`<button class="btn" data-share-link>Share…</button>` : ""}
     </div>
-    ${invites.length
-      ? html`<details class="history">
-          <summary>Invite history (${invites.length})</summary>
-          <ul class="list">
-            ${invites.map(
-              (i) => html`<li class="row">
-                <span class="grow">
-                  <span class="title">${i.label ? `For ${i.label}` : "Open invite"}</span>
-                  <span class="muted small">Created ${formatDay(i.createdAt)}${i.createdBy ? ` by ${i.createdBy}` : ""} ·
-                    ${i.status === "used" ? `Used by ${i.usedBy ?? "someone"} on ${formatDay(i.usedAt)}` : i.status === "active" ? `Expires ${formatDay(i.expiresAt)}` : INVITE_STATUS[i.status]}</span>
-                </span>
-                <span class="pill ${i.status === "active" ? "warn" : i.status === "used" ? "ok" : ""}">${INVITE_STATUS[i.status]}</span>
-                ${i.status === "active"
-                  ? html`<button class="btn small" data-copy="${i.token}">Copy</button><button class="btn small ghost danger" data-revoke="${i.id}">Cancel</button>`
-                  : ""}
-              </li>`,
-            )}
-          </ul>
-        </details>`
-      : ""}
-    ${pending.length === 0 && members.length > 1 ? html`<p class="muted small center">Everyone has joined.</p>` : ""}`;
+    ${compact && group.isOwner ? html`<button class="btn ghost small danger" data-reset-link>Reset link</button>` : ""}
+  </div>`;
 }
 
-function showInviteDialog(token, label, groupName) {
-  const url = inviteUrl(token);
-  openDialog(
-    html`<div class="sheet">
-      <div class="sheet-head"><h2>${label ? `Invite ${label}` : "Invite link"}</h2><button type="button" class="btn ghost small" data-close>Done</button></div>
-      <p>Send this link to ${label || "the person you want to invite"}. It works once and expires in 30 days.</p>
-      <div class="field"><label for="invite-link" class="visually-hidden">Invite link</label><input id="invite-link" readonly value="${url}" /></div>
-      <div class="actions">
-        <button class="btn primary" id="copy-link">Copy link</button>
-        ${navigator.share ? html`<button class="btn" id="share-link">Share…</button>` : ""}
-      </div>
-    </div>`,
-    (dialog) => {
-      const input = $("#invite-link", dialog);
-      input.onfocus = () => input.select();
-      $("#copy-link", dialog).onclick = () => copy(url);
-      const share = $("#share-link", dialog);
-      if (share) share.onclick = () => navigator.share({ title: groupName, text: `Join "${groupName}" on BillSplit`, url }).catch(() => {});
-    },
-  );
+function shareGroupLink(group) {
+  const url = groupLinkUrl(group);
+  navigator.share({ title: group.name, text: `Join "${group.name}" on BillSplit to split expenses`, url }).catch(() => {});
 }
 
-function bindPeople({ group, members, invites }, refresh) {
-  $$("[data-copy]").forEach((b) => (b.onclick = () => copy(inviteUrl(b.dataset.copy))));
-  $$("[data-revoke]").forEach(
+function bindGroupLink(group, refresh) {
+  $$("[data-link-input]").forEach((input) => (input.onfocus = () => input.select()));
+  $$("[data-copy-link]").forEach((b) => (b.onclick = () => copy(groupLinkUrl(group))));
+  $$("[data-share-link]").forEach((b) => (b.onclick = () => shareGroupLink(group)));
+  $$("[data-reset-link]").forEach(
     (b) =>
       (b.onclick = async () => {
-        if (!confirm("Cancel this invite link? It will stop working.")) return;
+        if (!confirm("Reset the group link? The current link stops working, and you'll need to share the new one.")) return;
         try {
-          await api(`/groups/${group.id}/invites/${b.dataset.revoke}`, { method: "DELETE" });
-          toast("Invite cancelled");
+          await api(`/groups/${group.id}/invites/reset`, { method: "POST" });
+          toast("New link created");
           refresh();
         } catch (err) {
           toast(err.message);
         }
       }),
   );
-  $("#open-invite").onclick = (e) =>
-    withBusy(e.currentTarget, async () => {
-      const res = await api(`/groups/${group.id}/invites`, { method: "POST", body: {} });
-      await refresh();
-      showInviteDialog(res.token, "", group.name);
-    });
+}
+
+function showShareDialog(group) {
+  const url = groupLinkUrl(group);
+  openDialog(
+    html`<div class="sheet">
+      <div class="sheet-head"><h2>Group created</h2><button type="button" class="btn ghost small" data-close>Done</button></div>
+      <p>Share this link in your group chat. Everyone who opens it can sign in and join <strong>${group.name}</strong>.</p>
+      <div class="field"><label for="share-link" class="visually-hidden">Group link</label><input id="share-link" readonly value="${url}" /></div>
+      <div class="actions">
+        <button class="btn primary" id="dlg-copy">Copy link</button>
+        ${navigator.share ? html`<button class="btn" id="dlg-share">Share…</button>` : ""}
+      </div>
+    </div>`,
+    (dialog) => {
+      const input = $("#share-link", dialog);
+      input.onfocus = () => input.select();
+      $("#dlg-copy", dialog).onclick = () => copy(url);
+      const share = $("#dlg-share", dialog);
+      if (share) share.onclick = () => shareGroupLink(group);
+    },
+  );
+}
+
+function peopleTab({ group, members }) {
+  return html`${groupLinkCard(group, { compact: true })}
+    <h2 class="section">People</h2>
+    <ul class="list">
+      ${members.map(
+        (m) => html`<li class="row">
+          <span class="avatar">${initials(m.name)}</span>
+          <span class="grow"><span class="title">${m.name}</span><span class="muted small">${
+            m.isMe ? `You${m.isOwner ? " · created this group" : ""}` : m.claimed ? `Joined${m.email ? ` · ${m.email}` : ""}` : "Not joined"
+          }</span></span>
+          <button class="btn small ghost" data-edit="${m.id}" aria-label="Edit ${m.name}">Edit</button>
+        </li>`,
+      )}
+    </ul>
+    <p class="muted small">Add someone who won't use the app, or add people now so they can pick their name when they join.</p>
+    <form class="add-row" id="add-member">
+      <label for="new-person" class="visually-hidden">Name</label>
+      <input id="new-person" name="name" placeholder="Name" maxlength="60" required />
+      <button class="btn">Add person</button>
+    </form>
+    <p class="error" id="member-error"></p>`;
+}
+
+function bindPeople({ group, members }, refresh) {
   const addForm = $("#add-member");
   addForm.onsubmit = async (e) => {
     e.preventDefault();
     try {
-      const name = addForm.name.value.trim();
-      const { id } = await api(`/groups/${group.id}/members`, { method: "POST", body: { name } });
+      await api(`/groups/${group.id}/members`, { method: "POST", body: { name: addForm.name.value.trim() } });
       await refresh();
-      // Straight to the next step: their invite link.
-      const res = await api(`/groups/${group.id}/invites`, { method: "POST", body: { memberId: id } });
-      await refresh();
-      showInviteDialog(res.token, res.label, group.name);
+      $("#new-person")?.focus();
     } catch (err) {
       $("#member-error").textContent = err.message;
     }
@@ -1081,82 +994,60 @@ async function renderInvite(token) {
     ${invite.group.description ? html`<p class="muted">${invite.group.description}</p>` : ""}`;
 
   if (invite.status !== "active") {
-    const reason = invite.status === "used" ? "This invite link has already been used." : invite.status === "expired" ? "This invite link has expired." : "This invite link was cancelled.";
     render(
       app,
-      html`<div class="card narrow">${heading}<p><strong>${reason}</strong> Invite links work once. Ask ${invite.invitedBy || "the person who sent it"} for a new link.</p>
+      html`<div class="card narrow">${heading}<p><strong>This link no longer works.</strong> Ask the group for the current link.</p>
         <a class="btn" href="/" data-link>Go to BillSplit</a></div>`,
     );
     return;
   }
 
   if (!invite.signedIn) {
-    render(
-      app,
-      html`<div class="card narrow">${heading}
-        ${invite.forName ? html`<p>You're invited as <strong>${invite.forName}</strong>.</p>` : ""}
-        <div id="signin-card"></div></div>`,
-    );
+    render(app, html`<div class="card narrow">${heading}<div id="signin-card"></div></div>`);
     signInForm($("#signin-card"), { next: `/join/${token}`, title: "Sign in to join", button: "Continue" });
     return;
   }
 
-  const showChooser = (preselect) => {
-    render(
-      app,
-      html`<div class="card narrow">${heading}
-        <form id="join-form">
-          <fieldset>
-            <legend>Who are you in this group?</legend>
-            <ul class="list choose">
-              ${invite.openPeople.map(
-                (p) => html`<li><label class="row"><input type="radio" name="who" value="${p.id}" ${p.id === preselect ? raw("checked") : ""} /> <span class="grow">${p.name}</span></label></li>`,
-              )}
-              <li><label class="row"><input type="radio" name="who" value="" ${invite.openPeople.length && preselect !== "" ? "" : raw("checked")} /> <span class="grow">I'm not listed. Add me as:</span></label>
-                <div class="new-name"><label for="new-name" class="visually-hidden">Your name</label><input id="new-name" name="newName" value="${me.name}" maxlength="60" /></div></li>
-            </ul>
-          </fieldset>
-          <p class="error"></p>
-          <button class="btn primary block">Join group</button>
-        </form></div>`,
-    );
-    const form = $("#join-form");
-    form.newName.onfocus = () => ($('input[name="who"][value=""]', form).checked = true);
-    form.onsubmit = (e) => {
-      e.preventDefault();
-      const who = $('input[name="who"]:checked', form);
-      if (!who) return formError(form, new Error("Pick your name, or add yourself"));
-      join($("button.primary", form), form, who.value ? { memberId: who.value } : { name: form.newName.value });
-    };
-  };
-
-  const join = (button, form, body) =>
-    withBusy(button, async () => {
+  const open = invite.openPeople;
+  render(
+    app,
+    html`<div class="card narrow">${heading}
+      <form id="join-form">
+        ${open.length
+          ? html`<fieldset>
+              <legend>Are you already on the list?</legend>
+              <ul class="list choose">
+                ${open.map(
+                  (p) => html`<li><label class="row"><input type="radio" name="who" value="${p.id}" ${p.id === invite.suggestedMemberId ? raw("checked") : ""} /> <span class="grow">I'm ${p.name}</span></label></li>`,
+                )}
+                <li><label class="row"><input type="radio" name="who" value="" ${invite.suggestedMemberId ? "" : raw("checked")} /> <span class="grow">I'm not on the list</span></label></li>
+              </ul>
+            </fieldset>`
+          : html`<input type="hidden" name="who" value="" />`}
+        <div class="field" id="name-field"><label for="new-name">Your name in this group</label><input id="new-name" name="newName" value="${me.name}" maxlength="60" /></div>
+        <p class="error"></p>
+        <button class="btn primary block">Join group</button>
+      </form>
+    </div>`,
+  );
+  const form = $("#join-form");
+  const selected = () => $('input[name="who"]:checked', form) ?? $('input[name="who"]', form);
+  const sync = () => ($("#name-field").hidden = Boolean(selected()?.value));
+  $$('input[name="who"]', form).forEach((r) => (r.onchange = sync));
+  sync();
+  form.onsubmit = (e) => {
+    e.preventDefault();
+    const who = selected()?.value;
+    withBusy($("button.primary", form), async () => {
       try {
-        const { id } = await api(`/invites/${token}/join`, { method: "POST", body });
+        const { id } = await api(`/invites/${token}/join`, { method: "POST", body: who ? { memberId: who } : { name: form.newName.value } });
         toast("You joined the group");
         navigate(`/g/${id}`, { replace: true });
       } catch (err) {
-        if (form) formError(form, err);
-        else toast(err.message);
+        formError(form, err);
       }
     });
-
-  if (invite.forMemberId) {
-    render(
-      app,
-      html`<div class="card narrow">${heading}
-        <p>You'll join as <strong>${invite.forName}</strong>.</p>
-        <p class="error"></p>
-        <button class="btn primary block" id="join-as">Join as ${invite.forName}</button>
-        <div class="actions center"><button class="btn ghost small" id="not-me">I'm not ${invite.forName}</button></div>
-      </div>`,
-    );
-    $("#join-as").onclick = (e) => join(e.currentTarget, app.querySelector(".card"), { memberId: invite.forMemberId });
-    $("#not-me").onclick = () => showChooser("");
-  } else {
-    showChooser(null);
-  }
+  };
 }
 
 // ---------- admin ----------
@@ -1186,6 +1077,7 @@ const ACTIONS = {
   "member.left": "Left group",
   "invite.created": "Created invite",
   "invite.revoked": "Cancelled invite",
+  "invite.reset": "Reset group link",
   "invite.used": "Joined via invite",
   "expense.created": "Added expense",
   "expense.updated": "Edited expense",
@@ -1254,7 +1146,7 @@ async function renderAdmin(path) {
         ${tile("Users", o.users, `${o.users_7d} new · ${o.active_7d} active in 7 days`)}
         ${tile("Groups", o.groups, `${o.expenses} expenses`)}
         ${tile("People in groups", o.people, `${o.joined_people} with an account`)}
-        ${tile("Invites", o.open_invites, `open · ${o.used_invites} used`)}
+        ${tile("Joins via links", o.link_joins, `${o.open_invites} active links`)}
         ${tile("Sign-ins (24h)", o.signins_24h, `${o.signins_verified_24h} verified`)}
         ${tile("Emails (24h)", o.emails_24h, html`<span class="${o.emails_failed_24h ? "neg" : ""}">${o.emails_failed_24h} failed</span>`)}
       </div>`,
@@ -1317,10 +1209,10 @@ async function renderAdmin(path) {
         </tbody></table></div>
         <h3>Invites</h3>
         ${d.invites.length
-          ? html`<div class="table-wrap"><table><thead><tr><th>For</th><th>Status</th><th>Created</th><th>By</th><th>Used by</th><th>Expires</th></tr></thead><tbody>
+          ? html`<div class="table-wrap"><table><thead><tr><th>Link</th><th>Status</th><th>Joins</th><th>Created</th><th>By</th><th>Last used</th></tr></thead><tbody>
               ${d.invites.map(
-                (i) => html`<tr><td>${i.label || html`<span class="muted">open</span>`}</td><td>${pill(i.status)}</td><td class="nowrap">${formatTime(i.created_at)}</td>
-                  <td>${i.created_by_email ?? "—"}</td><td>${i.used_by_email ? html`${i.used_by_email} <span class="muted small">${formatTime(i.used_at)}</span>` : "—"}</td><td class="nowrap">${formatTime(i.expires_at)}</td></tr>`,
+                (i) => html`<tr><td>${i.multi_use ? "Group link" : i.label ? `Personal: ${i.label}` : "Personal"}</td><td>${pill(i.status)}</td><td>${i.use_count}</td><td class="nowrap">${formatTime(i.created_at)}</td>
+                  <td>${i.created_by_email ?? "—"}</td><td>${i.used_by_email ? html`${i.used_by_email} <span class="muted small">${formatTime(i.used_at)}</span>` : formatTime(i.last_used_at)}</td></tr>`,
               )}
             </tbody></table></div>`
           : html`<p class="muted">No invites.</p>`}
