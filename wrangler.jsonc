@@ -36,6 +36,11 @@
     "APP_URL": "https://billsplit.atlesque.dev",
     "EMAIL_FROM": "billsplit@atlesque.dev",
     // Comma-separated emails that can open /admin (users, groups, sign-ins, audit log).
-    "ADMIN_EMAILS": "alexander@atlesque.media"
+    "ADMIN_EMAILS": "alexander@atlesque.media",
+
+    // Cloudflare Access application protecting /admin and /api/admin/* on this hostname.
+    // ACCESS_AUD is its "Application Audience (AUD) Tag". While either is empty, the admin API is off.
+    "ACCESS_TEAM_DOMAIN": "https://atlesque.cloudflareaccess.com",
+    "ACCESS_AUD": "d82a929380375d717916a317f95da8833f1812682581367600bff7441fc4e0f6"
   }
 }

@@ -17,7 +17,7 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 - **Flexible splits.** Split equally, by shares, or by exact amounts. Leftover cents are spread fairly, so shares always add up to the total. You can also record payments between people.
 - **Balances and settle-up.** See who is owed what and a short list of payments that settles everyone. “Mark paid” records a payment.
 - **CSV export** per group.
-- **Admin area** at `/admin` for emails listed in `ADMIN_EMAILS`. It shows users, groups and their people and invites, every sign-in request with its email delivery and verification status, and the full audit log.
+- **Admin area** at `/admin`, behind Cloudflare Access and limited to emails listed in `ADMIN_EMAILS`. It shows users, groups and their people and invites, every sign-in request with its email delivery and verification status, and the full audit log.
 - **Audit log** of every action: sign-in emails sent or failed, wrong codes, sign-ins, registrations, group/person/invite/expense changes. Entries record who did what, in which group, and from which IP address.
 
 ## Stack
@@ -34,7 +34,7 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 - Codes expire after 15 minutes, allow 5 wrong attempts, and work once. Each email address can request at most 5 codes per 15 minutes.
 - Sign-in links open a confirmation page instead of signing in on GET, so email link scanners can't use them up.
 - Sessions are `HttpOnly; Secure; SameSite=Lax` cookies valid for 90 days. Cross-origin mutating requests are refused.
-- Every group endpoint checks that the signed-in user is in that group. Admin endpoints return 404 to non-admins. Invite tokens are masked in admin views and logs.
+- Every group endpoint checks that the signed-in user is in that group. The admin area needs two things: a Cloudflare Access login (an Access application covers `/admin` and `/api/admin`) and a BillSplit session, both for an `ADMIN_EMAILS` address. The Worker verifies the Access JWT (`Cf-Access-Jwt-Assertion`) itself, so the admin API stays closed even if a request gets past Access. It returns 404 to non-admins and fails closed while `ACCESS_AUD` is empty. Invite tokens are masked in admin views and logs.
 
 ## Development
 
@@ -56,7 +56,8 @@ pnpm typecheck
 1. `pnpm exec wrangler d1 create billsplit` and put the returned `database_id` in `wrangler.jsonc`.
 2. Onboard your sending domain to Cloudflare Email Sending (`pnpm exec wrangler email sending enable example.com`).
 3. In `wrangler.jsonc`, set the `routes` pattern, `APP_URL`, `EMAIL_FROM` (an address on that domain), and `ADMIN_EMAILS`.
-4. `pnpm run deploy` applies the D1 migrations and deploys the Worker.
+4. Create a Cloudflare Access self-hosted application with destinations `<host>/admin` and `<host>/api/admin`, then set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` (the application's AUD tag). For local dev, `.dev.vars` can set `DEV_DISABLE_ACCESS=true` while `ACCESS_AUD` is empty.
+5. `pnpm run deploy` applies the D1 migrations and deploys the Worker.
 
 ## License
 

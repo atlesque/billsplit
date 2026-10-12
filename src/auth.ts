@@ -1,3 +1,4 @@
+import { verifyAccess } from "./access";
 import { audit } from "./audit";
 import { HttpError, maskPath, now, randomId, readJson, sha256, text } from "./http";
 
@@ -48,10 +49,17 @@ export function isAdmin(env: Env, user: User | null): boolean {
     .includes(user.email);
 }
 
-/** 404s for non-admins so the admin API doesn't advertise itself. */
+/**
+ * Admin requests need both a BillSplit session for an ADMIN_EMAILS address and a valid
+ * Cloudflare Access assertion for an ADMIN_EMAILS address. Non-admins get a 404.
+ */
 export async function requireAdmin(request: Request, env: Env): Promise<User> {
   const user = await requireUser(request, env);
   if (!isAdmin(env, user)) throw new HttpError(404, "Not found");
+  const accessEmail = await verifyAccess(request, env);
+  if (accessEmail !== "dev@localhost" && !isAdmin(env, { ...user, email: accessEmail })) {
+    throw new HttpError(403, "This Cloudflare Access identity is not an admin");
+  }
   return user;
 }
 

@@ -148,7 +148,7 @@ function renderAccount() {
   }
   render(
     accountEl,
-    html`${meIsAdmin ? html`<a class="btn ghost small" href="/admin" data-link>Admin</a>` : ""}
+    html`${meIsAdmin ? html`<a class="btn ghost small" href="/admin">Admin</a>` : ""}
       <button class="btn ghost small" id="account-btn" title="${me.email}">${me.name || me.email}</button>`,
   );
   document.getElementById("account-btn").onclick = openAccountDialog;
@@ -1375,6 +1375,17 @@ async function renderAdmin(path) {
 // ---------- router ----------
 
 function showError(err) {
+  // Admin pages sit behind Cloudflare Access. Without an Access session the API call is
+  // redirected to the Access login (a network error for fetch); a full page load signs in.
+  if (location.pathname.startsWith("/admin") && (err instanceof TypeError || err.status === 403)) {
+    render(
+      app,
+      html`<div class="card narrow center"><h2>Confirm it's you</h2><p class="muted">The admin area needs a Cloudflare Access sign-in.</p>
+        <button class="btn primary" id="access-login">Continue</button></div>`,
+    );
+    $("#access-login").onclick = () => location.assign(location.pathname + location.search);
+    return;
+  }
   if (err.status === 401) {
     me = null;
     renderAccount();

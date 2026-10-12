@@ -1,0 +1,2 @@
+# Local development only. Lets /admin work without Cloudflare Access while ACCESS_AUD is empty.
+DEV_DISABLE_ACCESS=true
