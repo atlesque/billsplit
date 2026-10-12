@@ -34,6 +34,8 @@
 
   "vars": {
     "APP_URL": "https://billsplit.atlesque.dev",
-    "EMAIL_FROM": "billsplit@atlesque.dev"
+    "EMAIL_FROM": "billsplit@atlesque.dev",
+    // Comma-separated emails that can open /admin (users, groups, sign-ins, audit log).
+    "ADMIN_EMAILS": "alexander@atlesque.media"
   }
 }

@@ -1,3 +1,4 @@
+import { audit } from "./audit";
 import type { User } from "./auth";
 import { groupForUser } from "./groups";
 import { cents, HttpError, now, optionalText, randomId, readJson, text } from "./http";
@@ -42,6 +43,8 @@ async function parseExpense(request: Request, env: Env, groupId: string) {
 
 type Parsed = Awaited<ReturnType<typeof parseExpense>>;
 
+const summary = (p: Parsed) => ({ kind: p.kind, title: p.title, amount: p.amount, paidBy: p.paidBy, split: p.mode, people: p.resolved.size });
+
 function shareInserts(env: Env, expenseId: string, p: Parsed) {
   return [...p.resolved].map(([memberId, amount]) =>
     env.DB.prepare("INSERT INTO expense_shares (expense_id, member_id, weight, amount_cents) VALUES (?, ?, ?, ?)").bind(
@@ -65,13 +68,16 @@ export async function createExpense(request: Request, env: Env, user: User, grou
     ).bind(id, groupId, p.kind, p.title, p.amount, p.paidBy, p.date, p.category, p.mode, user.id, t, t),
     ...shareInserts(env, id, p),
   ]);
+  await audit(env, request, user, "expense.created", { groupId, target: id, details: summary(p) });
   return Response.json({ id }, { status: 201 });
 }
 
 export async function updateExpense(request: Request, env: Env, user: User, groupId: string, expenseId: string) {
   await groupForUser(env, groupId, user);
-  const exists = await env.DB.prepare("SELECT id FROM expenses WHERE id = ? AND group_id = ?").bind(expenseId, groupId).first();
-  if (!exists) throw new HttpError(404, "Expense not found");
+  const before = await env.DB.prepare("SELECT title, amount_cents FROM expenses WHERE id = ? AND group_id = ?")
+    .bind(expenseId, groupId)
+    .first<{ title: string; amount_cents: number }>();
+  if (!before) throw new HttpError(404, "Expense not found");
   const p = await parseExpense(request, env, groupId);
   await env.DB.batch([
     env.DB.prepare(
@@ -81,15 +87,25 @@ export async function updateExpense(request: Request, env: Env, user: User, grou
     env.DB.prepare("DELETE FROM expense_shares WHERE expense_id = ?").bind(expenseId),
     ...shareInserts(env, expenseId, p),
   ]);
+  await audit(env, request, user, "expense.updated", {
+    groupId,
+    target: expenseId,
+    details: { ...summary(p), before: { title: before.title, amount: before.amount_cents } },
+  });
   return Response.json({ id: expenseId });
 }
 
-export async function deleteExpense(env: Env, user: User, groupId: string, expenseId: string) {
+export async function deleteExpense(request: Request, env: Env, user: User, groupId: string, expenseId: string) {
   await groupForUser(env, groupId, user);
+  const before = await env.DB.prepare("SELECT title, amount_cents, kind FROM expenses WHERE id = ? AND group_id = ?")
+    .bind(expenseId, groupId)
+    .first<{ title: string; amount_cents: number; kind: string }>();
+  if (!before) throw new HttpError(404, "Expense not found");
   const res = await env.DB.batch([
     env.DB.prepare("DELETE FROM expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE id = ? AND group_id = ?)").bind(expenseId, groupId),
     env.DB.prepare("DELETE FROM expenses WHERE id = ? AND group_id = ?").bind(expenseId, groupId),
   ]);
   if (!res[1].meta.changes) throw new HttpError(404, "Expense not found");
+  await audit(env, request, user, "expense.deleted", { groupId, target: expenseId, details: { kind: before.kind, title: before.title, amount: before.amount_cents } });
   return new Response(null, { status: 204 });
 }

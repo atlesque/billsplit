@@ -1,4 +1,5 @@
-import { HttpError, now, randomId, readJson, sha256, text } from "./http";
+import { audit } from "./audit";
+import { HttpError, maskPath, now, randomId, readJson, sha256, text } from "./http";
 
 const SESSION_COOKIE = "bs_session";
 const SESSION_TTL = 90 * 24 * 3600 * 1000;
@@ -39,6 +40,21 @@ export async function requireUser(request: Request, env: Env): Promise<User> {
   return user;
 }
 
+export function isAdmin(env: Env, user: User | null): boolean {
+  if (!user) return false;
+  return (env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .includes(user.email);
+}
+
+/** 404s for non-admins so the admin API doesn't advertise itself. */
+export async function requireAdmin(request: Request, env: Env): Promise<User> {
+  const user = await requireUser(request, env);
+  if (!isAdmin(env, user)) throw new HttpError(404, "Not found");
+  return user;
+}
+
 function safeNext(value: unknown): string {
   // Only same-origin app paths, never protocol-relative URLs.
   return typeof value === "string" && /^\/(?!\/)[\w\-/.?=&%]*$/.test(value) ? value : "/";
@@ -56,6 +72,7 @@ export async function startLogin(request: Request, env: Env): Promise<Response> 
     .bind(email, now() - LOGIN_TTL)
     .first<{ n: number }>();
   if ((recent?.n ?? 0) >= MAX_REQUESTS_PER_WINDOW) {
+    await audit(env, request, null, "auth.rate_limited", { details: { email } });
     throw new HttpError(429, "Too many sign-in emails. Wait a few minutes and try again.");
   }
 
@@ -70,17 +87,30 @@ export async function startLogin(request: Request, env: Env): Promise<Response> 
     .run();
 
   const link = `${env.APP_URL}/signin?token=${linkToken}`;
+  // The email log never stores the code itself.
+  const logEmail = (status: "sent" | "failed", extra: { error?: string; messageId?: string } = {}) =>
+    env.DB.prepare(
+      `INSERT INTO email_log (id, to_email, kind, subject, status, error, message_id, login_request_id, created_at)
+       VALUES (?, ?, 'sign_in', 'Sign in to BillSplit', ?, ?, ?, ?, ?)`,
+    )
+      .bind(randomId(), email, status, extra.error ?? null, extra.messageId ?? null, id, now())
+      .run();
+
   try {
-    await env.EMAIL.send({
+    const result = await env.EMAIL.send({
       to: email,
       from: { email: env.EMAIL_FROM, name: "BillSplit" },
-      subject: `${code} is your BillSplit sign-in code`,
-      text: `Your BillSplit sign-in code is ${code}\n\nOr sign in with this link:\n${link}\n\nThe code and link expire in 15 minutes. If you didn't ask for this, you can ignore this email.`,
+      subject: `Sign in to BillSplit (code ${code})`,
+      text: `Sign in to BillSplit with this link:\n${link}\n\nOr enter this code: ${code}\n\nThe link and code expire in 15 minutes and work once. If you didn't ask for this, ignore this email.`,
       html: loginEmailHtml(code, link),
     });
+    await logEmail("sent", { messageId: result?.messageId });
+    await audit(env, request, null, "auth.email_sent", { target: id, details: { email, next: maskPath(next) } });
   } catch (error) {
     const e = error as { code?: string; message?: string };
     console.error("Sign-in email failed", e.code, e.message);
+    await logEmail("failed", { error: [e.code, e.message].filter(Boolean).join(": ") || "unknown" });
+    await audit(env, request, null, "auth.email_failed", { target: id, details: { email, error: e.message } });
     throw new HttpError(502, "Could not send the sign-in email. Try again in a moment.");
   }
   return Response.json({ requestId: id, email });
@@ -91,34 +121,39 @@ function loginEmailHtml(code: string, link: string): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background:#fff;border-radius:14px;padding:32px">
 <tr><td style="font-size:20px;font-weight:700;padding-bottom:8px">BillSplit</td></tr>
-<tr><td style="font-size:15px;line-height:1.5;padding-bottom:20px">Enter this code to sign in:</td></tr>
-<tr><td style="font-size:34px;font-weight:700;letter-spacing:8px;padding-bottom:24px;font-family:Menlo,Consolas,monospace">${code}</td></tr>
-<tr><td style="padding-bottom:24px"><a href="${link}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Sign in to BillSplit</a></td></tr>
-<tr><td style="font-size:13px;color:#667085;line-height:1.5">The code and link expire in 15 minutes. If you didn't ask for this, you can ignore this email.</td></tr>
+<tr><td style="padding:8px 0 24px"><a href="${link}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Sign in to BillSplit</a></td></tr>
+<tr><td style="font-size:14px;line-height:1.5;padding-bottom:6px">Or enter this code:</td></tr>
+<tr><td style="font-size:30px;font-weight:700;letter-spacing:8px;padding-bottom:24px;font-family:Menlo,Consolas,monospace">${code}</td></tr>
+<tr><td style="font-size:13px;color:#667085;line-height:1.5">The link and code expire in 15 minutes and work once. If you didn't ask for this, ignore this email.</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
 type LoginRow = { id: string; email: string; code_hash: string; attempts: number; next_path: string };
 
-async function completeLogin(env: Env, row: LoginRow): Promise<Response> {
+async function completeLogin(request: Request, env: Env, row: LoginRow, method: "code" | "link"): Promise<Response> {
   // Mark used atomically so a code or link can only ever be redeemed once.
   const claimed = await env.DB.prepare("UPDATE login_requests SET used_at = ? WHERE id = ? AND used_at IS NULL")
     .bind(now(), row.id)
     .run();
-  if (!claimed.meta.changes) throw new HttpError(400, "This sign-in was already used. Request a new code.");
+  if (!claimed.meta.changes) throw new HttpError(400, "This sign-in was already used. Request a new one.");
 
-  await env.DB.prepare("INSERT OR IGNORE INTO users (id, email, name, created_at) VALUES (?, ?, '', ?)")
+  // The first verified sign-in for an email address registers the account.
+  const created = await env.DB.prepare("INSERT OR IGNORE INTO users (id, email, name, created_at) VALUES (?, ?, '', ?)")
     .bind(randomId(), row.email, now())
     .run();
   const user = await env.DB.prepare("SELECT id, email, name FROM users WHERE email = ?").bind(row.email).first<User>();
   if (!user) throw new HttpError(500, "Could not create account");
+  await env.DB.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").bind(now(), user.id).run();
+  const isNew = created.meta.changes > 0;
+  if (isNew) await audit(env, request, user, "user.registered", { target: user.id });
+  await audit(env, request, user, "auth.signed_in", { target: row.id, details: { method } });
 
   const token = randomId(32);
   await env.DB.prepare("INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)")
     .bind(await sha256(token), user.id, now() + SESSION_TTL, now())
     .run();
   return Response.json(
-    { user, next: row.next_path },
+    { user, isAdmin: isAdmin(env, user), isNew, next: row.next_path },
     { headers: { "Set-Cookie": sessionCookie(token, SESSION_TTL / 1000) } },
   );
 }
@@ -139,10 +174,11 @@ export async function verifyCode(request: Request, env: Env): Promise<Response> 
 
   if ((await sha256(`${row.id}:${code}`)) !== row.code_hash) {
     await env.DB.prepare("UPDATE login_requests SET attempts = attempts + 1 WHERE id = ?").bind(row.id).run();
+    await audit(env, request, null, "auth.code_wrong", { target: row.id, details: { email: row.email, attempt: row.attempts + 1 } });
     const left = MAX_ATTEMPTS - row.attempts - 1;
     throw new HttpError(400, left > 0 ? `Wrong code. ${left} attempt${left === 1 ? "" : "s"} left.` : "Too many wrong codes. Request a new one.");
   }
-  return completeLogin(env, row);
+  return completeLogin(request, env, row, "code");
 }
 
 export async function verifyLink(request: Request, env: Env): Promise<Response> {
@@ -154,13 +190,17 @@ export async function verifyLink(request: Request, env: Env): Promise<Response> 
   )
     .bind(await sha256(token), now())
     .first<LoginRow>();
-  if (!row) throw new HttpError(400, "This sign-in link has expired or was already used.");
-  return completeLogin(env, row);
+  if (!row) throw new HttpError(400, "This sign-in link has expired or was already used. Request a new one.");
+  return completeLogin(request, env, row, "link");
 }
 
 export async function logout(request: Request, env: Env): Promise<Response> {
   const token = readCookie(request, SESSION_COOKIE);
-  if (token) await env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(await sha256(token)).run();
+  if (token) {
+    const user = await currentUser(request, env);
+    await env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(await sha256(token)).run();
+    if (user) await audit(env, request, user, "auth.signed_out");
+  }
   return new Response(null, { status: 204, headers: { "Set-Cookie": sessionCookie("", 0) } });
 }
 
@@ -168,13 +208,14 @@ export async function updateProfile(request: Request, env: Env, user: User): Pro
   const body = await readJson(request);
   const name = text(body.name, "Name", { max: 60 });
   await env.DB.prepare("UPDATE users SET name = ? WHERE id = ?").bind(name, user.id).run();
+  await audit(env, request, user, "user.renamed", { target: user.id, details: { from: user.name, to: name } });
   return Response.json({ ...user, name });
 }
 
 export async function cleanup(env: Env): Promise<void> {
-  const cutoff = now() - 24 * 3600 * 1000;
+  // Sign-in requests are kept 90 days so the admin can see verification history.
   await env.DB.batch([
-    env.DB.prepare("DELETE FROM login_requests WHERE expires_at < ?").bind(cutoff),
+    env.DB.prepare("DELETE FROM login_requests WHERE expires_at < ?").bind(now() - 90 * 24 * 3600 * 1000),
     env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(now()),
   ]);
 }

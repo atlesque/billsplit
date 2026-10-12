@@ -1,9 +1,8 @@
 export class HttpError extends Error {
-  constructor(
-    readonly status: number,
-    message: string,
-  ) {
+  readonly status: number;
+  constructor(status: number, message: string) {
     super(message);
+    this.status = status;
   }
 }
 
@@ -60,3 +59,6 @@ export async function sha256(value: string): Promise<string> {
 }
 
 export const now = () => Date.now();
+
+/** Shortens invite tokens in app paths (e.g. /join/abcd…) for logs and the admin view. */
+export const maskPath = (path: string) => path.replace(/(\/join\/[\w-]{4})[\w-]+/, "$1…");
