@@ -1,5 +1,7 @@
 // BillSplit front end: a small dependency-free SPA with history routing.
 
+import { LANGUAGES, getLanguage, getLocale, hasTranslation, setLanguage, t } from "/i18n.js";
+
 const app = document.getElementById("app");
 const accountEl = document.getElementById("account");
 let me = null;
@@ -27,19 +29,21 @@ function html(strings, ...values) {
   return raw(out);
 }
 const render = (target, view) => (target.innerHTML = view.value);
+/** A translation whose text contains HTML; placeholder values are escaped. */
+const th = (key, params = {}) => raw(t(key, Object.fromEntries(Object.entries(params).map(([k, v]) => [k, esc(v)]))));
 const $ = (sel, root = app) => root.querySelector(sel);
 const $$ = (sel, root = app) => [...root.querySelectorAll(sel)];
 
 async function api(path, { method = "GET", body } = {}) {
   const res = await fetch(`/api${path}`, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers: { "Accept-Language": getLanguage(), ...(body ? { "Content-Type": "application/json" } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   if (res.status === 204) return null;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const error = new Error(data.error || `Request failed (${res.status})`);
+    const error = new Error(data.error || t("error.requestFailed", { status: res.status }));
     error.status = res.status;
     throw error;
   }
@@ -57,7 +61,7 @@ function toast(message) {
 
 const money = (cents, currency) => {
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(cents / 100);
+    return new Intl.NumberFormat(getLocale(), { style: "currency", currency }).format(cents / 100);
   } catch {
     return `${(cents / 100).toFixed(2)} ${currency}`;
   }
@@ -84,12 +88,17 @@ const initials = (name) =>
     .join("") || "?";
 const today = () => new Date().toLocaleDateString("en-CA");
 const formatDate = (iso) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  new Date(`${iso}T12:00:00`).toLocaleDateString(getLocale(), { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 const formatTime = (ms) =>
-  ms ? new Date(ms).toLocaleString(undefined, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
-const formatDay = (ms) => (ms ? new Date(ms).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—");
+  ms ? new Date(ms).toLocaleString(getLocale(), { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+const formatDay = (ms) => (ms ? new Date(ms).toLocaleDateString(getLocale(), { day: "numeric", month: "short", year: "numeric" }) : "—");
 const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "JPY", "CAD", "AUD", "SEK", "NOK", "DKK", "PLN", "CZK", "HUF", "CNY", "INR", "BRL", "MXN", "ZAR", "NZD", "SGD", "HKD", "THB", "TRY"];
+// Categories are stored in English and translated for display; custom values show as typed.
 const CATEGORIES = ["", "Food & drinks", "Groceries", "Transport", "Accommodation", "Activities", "Shopping", "Bills", "Other"];
+const categoryLabel = (c) => (hasTranslation(`category.${c}`) ? t(`category.${c}`) : c);
+// Payments are stored with the English title "Payment".
+const expenseTitle = (e) => (e.kind === "transfer" && e.title === "Payment" ? t("expense.payment") : e.title);
+const peopleCount = (count) => t("people", { count });
 const inviteUrl = (token) => `${location.origin}/join/${token}`;
 
 function navigate(path, { replace = false } = {}) {
@@ -130,38 +139,45 @@ function openDialog(content, onMount) {
   return dialog;
 }
 
-async function copy(text, message = "Link copied") {
+async function copy(text, message = t("link.copied")) {
   try {
     await navigator.clipboard.writeText(text);
     toast(message);
   } catch {
-    prompt("Copy this link:", text);
+    prompt(t("link.copyPrompt"), text);
   }
 }
 
 // ---------- header ----------
 
 function renderAccount() {
-  if (!me) {
-    accountEl.innerHTML = "";
-    return;
-  }
+  const switcher = html`<label for="lang-select" class="visually-hidden">${t("lang.label")}</label>
+    <select id="lang-select" class="lang-select" title="${t("lang.label")}">
+      ${Object.entries(LANGUAGES).map(([code, label]) => html`<option value="${code}" lang="${code}" ${code === getLanguage() ? raw("selected") : ""}>${label}</option>`)}
+    </select>`;
   render(
     accountEl,
-    html`${meIsAdmin ? html`<a class="btn ghost small" href="/admin">Admin</a>` : ""}
-      <button class="btn ghost small" id="account-btn" title="${me.email}">${me.name || me.email}</button>`,
+    me
+      ? html`${switcher}${meIsAdmin ? html`<a class="btn ghost small" href="/admin">${t("account.admin")}</a>` : ""}
+          <button class="btn ghost small" id="account-btn" title="${me.email}">${me.name || me.email}</button>`
+      : switcher,
   );
-  document.getElementById("account-btn").onclick = openAccountDialog;
+  document.getElementById("lang-select").onchange = (e) => {
+    setLanguage(e.target.value);
+    renderAccount();
+    route({ refresh: true });
+  };
+  if (me) document.getElementById("account-btn").onclick = openAccountDialog;
 }
 
 function openAccountDialog() {
   openDialog(
     html`<form class="sheet">
-      <div class="sheet-head"><h2>Your account</h2><button type="button" class="btn ghost small" data-close>Close</button></div>
-      <p class="muted small">Signed in as ${me.email}</p>
-      <div class="field"><label for="acc-name">Your name</label><input id="acc-name" name="name" value="${me.name}" maxlength="60" required /></div>
+      <div class="sheet-head"><h2>${t("account.title")}</h2><button type="button" class="btn ghost small" data-close>${t("action.close")}</button></div>
+      <p class="muted small">${t("account.signedInAs", { email: me.email })}</p>
+      <div class="field"><label for="acc-name">${t("account.yourName")}</label><input id="acc-name" name="name" value="${me.name}" maxlength="60" required /></div>
       <p class="error"></p>
-      <div class="actions"><button class="btn primary">Save</button><button type="button" class="btn danger" id="logout">Sign out</button></div>
+      <div class="actions"><button class="btn primary">${t("action.save")}</button><button type="button" class="btn danger" id="logout">${t("account.signOut")}</button></div>
     </form>`,
     (dialog) => {
       const form = dialog.querySelector("form");
@@ -171,7 +187,7 @@ function openAccountDialog() {
           me = await api("/me", { method: "PATCH", body: { name: form.name.value } });
           renderAccount();
           dialog.close();
-          toast("Saved");
+          toast(t("toast.saved"));
         } catch (err) {
           formError(form, err);
         }
@@ -191,14 +207,14 @@ function openAccountDialog() {
 // ---------- sign in (one flow for new and existing accounts) ----------
 
 /** Email -> link/code form. `next` is where the user lands after signing in, on any device. */
-function signInForm(card, { next = "/", title = "Sign in or create an account", button = "Continue" } = {}) {
+function signInForm(card, { next = "/", title = t("signin.title"), button = t("action.continue") } = {}) {
   const showEmail = (email = "") => {
     render(
       card,
       html`<form novalidate>
         <h2>${title}</h2>
-        <p class="muted small">Enter your email. We'll send you a sign-in link. New here? This creates your account.</p>
-        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" value="${email}" required /></div>
+        <p class="muted small">${t("signin.intro")}</p>
+        <div class="field"><label for="email">${t("signin.email")}</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" value="${email}" required /></div>
         <p class="error"></p>
         <button class="btn primary block">${button}</button>
       </form>`,
@@ -222,16 +238,16 @@ function signInForm(card, { next = "/", title = "Sign in or create an account", 
     render(
       card,
       html`<form novalidate>
-        <h2>Check your email</h2>
-        <p>We sent a sign-in link to <strong>${email}</strong>. Open it on any device to continue.</p>
-        <div class="field"><label for="code">Or enter the 6-digit code from the email</label><input id="code" name="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required /></div>
+        <h2>${t("signin.checkEmail")}</h2>
+        <p>${th("signin.sent", { email })}</p>
+        <div class="field"><label for="code">${t("signin.codeLabel")}</label><input id="code" name="code" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" required /></div>
         <p class="error"></p>
-        <button class="btn primary block">Sign in</button>
+        <button class="btn primary block">${t("signin.submit")}</button>
         <div class="actions">
-          <button type="button" class="btn ghost small" id="resend">Send a new email</button>
-          <button type="button" class="btn ghost small" id="other-email">Use a different email</button>
+          <button type="button" class="btn ghost small" id="resend">${t("signin.resend")}</button>
+          <button type="button" class="btn ghost small" id="other-email">${t("signin.otherEmail")}</button>
         </div>
-        <p class="muted small">No email after a minute? Check your spam folder.</p>
+        <p class="muted small">${t("signin.spam")}</p>
       </form>`,
     );
     const form = $("form", card);
@@ -245,7 +261,7 @@ function signInForm(card, { next = "/", title = "Sign in or create an account", 
       withBusy(e.currentTarget, async () => {
         try {
           showSent(await api("/auth/start", { method: "POST", body: { email, next } }));
-          toast("New email sent");
+          toast(t("signin.resent"));
         } catch (err) {
           formError(form, err);
         }
@@ -289,7 +305,7 @@ function renderHomeSignedOut() {
     app,
     html`<section class="intro">
         <h1>BillSplit</h1>
-        <p class="muted">Track shared expenses with a group and see who owes whom.</p>
+        <p class="muted">${t("app.tagline")}</p>
       </section>
       <div class="card narrow" id="signin-card"></div>`,
   );
@@ -302,11 +318,11 @@ function renderLinkSignIn() {
   render(
     app,
     html`<div class="card narrow center">
-      <h1>Sign in</h1>
-      <p class="muted">Tap the button to finish signing in on this device.</p>
+      <h1>${t("signin.submit")}</h1>
+      <p class="muted">${t("signin.linkHelp")}</p>
       <p class="error"></p>
-      <button class="btn primary block" id="go">Finish signing in</button>
-      <div class="actions center"><a href="/" data-link class="small">Request a new link</a></div>
+      <button class="btn primary block" id="go">${t("signin.finish")}</button>
+      <div class="actions center"><a href="/" data-link class="small">${t("signin.newLink")}</a></div>
     </div>`,
   );
   const button = $("#go");
@@ -326,13 +342,13 @@ function renderNameStep() {
   render(
     app,
     html`<div class="card narrow">
-      <p class="step-label">Account created</p>
-      <h1>What's your name?</h1>
-      <p class="muted small">People in your groups will see this name.</p>
+      <p class="step-label">${t("name.created")}</p>
+      <h1>${t("name.title")}</h1>
+      <p class="muted small">${t("name.help")}</p>
       <form>
-        <div class="field"><label for="first-name">Your name</label><input id="first-name" name="name" maxlength="60" autocomplete="name" required /></div>
+        <div class="field"><label for="first-name">${t("account.yourName")}</label><input id="first-name" name="name" maxlength="60" autocomplete="name" required /></div>
         <p class="error"></p>
-        <button class="btn primary block">Continue</button>
+        <button class="btn primary block">${t("action.continue")}</button>
       </form>
     </div>`,
   );
@@ -360,14 +376,14 @@ async function renderGroups() {
     render(
       app,
       html`<div class="card narrow">
-        <h1>Create your first group</h1>
+        <h1>${t("groups.firstTitle")}</h1>
         <ol class="steps-plain">
-          <li>Create a group.</li>
-          <li>Share the group link in your group chat.</li>
-          <li>Add expenses. BillSplit works out who owes whom.</li>
+          <li>${t("groups.step1")}</li>
+          <li>${t("groups.step2")}</li>
+          <li>${t("groups.step3")}</li>
         </ol>
-        <a class="btn primary block" href="/new" data-link>Create a group</a>
-        <p class="muted small" style="margin-top:1rem">Got a group link from a friend? Open it to join their group.</p>
+        <a class="btn primary block" href="/new" data-link>${t("groups.create")}</a>
+        <p class="muted small" style="margin-top:1rem">${t("groups.gotLink")}</p>
       </div>`,
     );
     return;
@@ -375,8 +391,8 @@ async function renderGroups() {
   render(
     app,
     html`<div class="page-head">
-        <h1>Your groups</h1>
-        <a class="btn primary" href="/new" data-link>New group</a>
+        <h1>${t("nav.yourGroups")}</h1>
+        <a class="btn primary" href="/new" data-link>${t("groups.new")}</a>
       </div>
       <ul class="list">
         ${groups.map(
@@ -385,10 +401,10 @@ async function renderGroups() {
               <span class="avatar">${initials(g.name)}</span>
               <span class="grow">
                 <span class="title">${g.name}</span>
-                <span class="muted small">${g.member_count} ${g.member_count === 1 ? "person" : "people"} · ${money(g.total, g.currency)} spent</span>
+                <span class="muted small">${peopleCount(g.member_count)} · ${t("groups.spent", { amount: money(g.total, g.currency) })}</span>
               </span>
               <span class="amount small ${g.my_balance > 0 ? "pos" : g.my_balance < 0 ? "neg" : "muted"}">
-                ${g.my_balance === 0 ? "Settled" : `${g.my_balance > 0 ? "You're owed" : "You owe"} ${money(Math.abs(g.my_balance), g.currency)}`}
+                ${g.my_balance === 0 ? t("balance.settled") : t(g.my_balance > 0 ? "balance.owedAmount" : "balance.oweAmount", { amount: money(Math.abs(g.my_balance), g.currency) })}
               </span>
             </a>
           </li>`,
@@ -400,18 +416,18 @@ async function renderGroups() {
 function renderNewGroup() {
   render(
     app,
-    html`<div class="narrow"><a href="/" data-link class="small back">← Your groups</a>
+    html`<div class="narrow"><a href="/" data-link class="small back">${t("nav.backToGroups")}</a>
       <div class="card">
-        <h1>Create a group</h1>
-        <p class="muted small">Next you'll get one link to share with everyone in the group.</p>
+        <h1>${t("groups.create")}</h1>
+        <p class="muted small">${t("newGroup.help")}</p>
         <form id="new-group" novalidate>
-          <div class="field"><label for="g-name">Group name</label><input id="g-name" name="name" maxlength="80" placeholder="e.g. Lisbon trip" required /></div>
+          <div class="field"><label for="g-name">${t("newGroup.name")}</label><input id="g-name" name="name" maxlength="80" placeholder="${t("newGroup.namePlaceholder")}" required /></div>
           <div class="grid2">
-            <div class="field"><label for="g-me">Your name</label><input id="g-me" name="myName" maxlength="60" value="${me.name}" required /></div>
-            <div class="field"><label for="g-cur">Currency</label><select id="g-cur" name="currency">${CURRENCIES.map((c) => html`<option ${c === "EUR" ? raw("selected") : ""}>${c}</option>`)}</select></div>
+            <div class="field"><label for="g-me">${t("account.yourName")}</label><input id="g-me" name="myName" maxlength="60" value="${me.name}" required /></div>
+            <div class="field"><label for="g-cur">${t("field.currency")}</label><select id="g-cur" name="currency">${CURRENCIES.map((c) => html`<option ${c === "EUR" ? raw("selected") : ""}>${c}</option>`)}</select></div>
           </div>
           <p class="error"></p>
-          <button class="btn primary block">Create group</button>
+          <button class="btn primary block">${t("newGroup.submit")}</button>
         </form>
       </div></div>`,
   );
@@ -438,22 +454,18 @@ function renderNewGroup() {
 
 // ---------- group ----------
 
-const TABS = [
-  ["expenses", "Expenses"],
-  ["balances", "Balances"],
-  ["people", "People"],
-  ["settings", "Settings"],
-];
+const TABS = ["expenses", "balances", "people", "settings"];
 
 async function renderGroup(groupId) {
-  const tab = TABS.some(([k]) => k === new URLSearchParams(location.search).get("tab"))
+  const tab = TABS.includes(new URLSearchParams(location.search).get("tab"))
     ? new URLSearchParams(location.search).get("tab")
     : "expenses";
   const data = await api(`/groups/${groupId}`);
   const { group, members, expenses, settlements, meId } = data;
   const cur = group.currency;
   const byId = new Map(members.map((m) => [m.id, m]));
-  const name = (id) => (id === meId ? "You" : byId.get(id)?.name ?? "?");
+  // `object` gives the form used after a verb ("paid you" rather than "paid You").
+  const name = (id, { object = false } = {}) => (id === meId ? t(object ? "youObject" : "you") : byId.get(id)?.name ?? "?");
   const total = expenses.filter((e) => e.kind === "expense").reduce((a, e) => a + e.amount, 0);
   const mine = byId.get(meId);
   const others = members.filter((m) => !m.isMe);
@@ -470,20 +482,20 @@ async function renderGroup(groupId) {
 
   render(
     app,
-    html`<a href="/" data-link class="small back">← Your groups</a>
+    html`<a href="/" data-link class="small back">${t("nav.backToGroups")}</a>
       <div class="page-head">
-        <div><h1>${group.name}</h1><p class="muted small">${members.length} ${members.length === 1 ? "person" : "people"} · ${cur}${group.description ? ` · ${group.description}` : ""}</p></div>
+        <div><h1>${group.name}</h1><p class="muted small">${peopleCount(members.length)} · ${cur}${group.description ? ` · ${group.description}` : ""}</p></div>
       </div>
       <div class="stats">
-        <div class="stat"><div class="label">Total spent</div><div class="value">${money(total, cur)}</div></div>
-        <div class="stat"><div class="label">${mine.balance >= 0 ? "You're owed" : "You owe"}</div><div class="value ${mine.balance > 0 ? "pos" : mine.balance < 0 ? "neg" : ""}">${money(Math.abs(mine.balance), cur)}</div></div>
+        <div class="stat"><div class="label">${t("group.totalSpent")}</div><div class="value">${money(total, cur)}</div></div>
+        <div class="stat"><div class="label">${t(mine.balance >= 0 ? "balance.owed" : "balance.owe")}</div><div class="value ${mine.balance > 0 ? "pos" : mine.balance < 0 ? "neg" : ""}">${money(Math.abs(mine.balance), cur)}</div></div>
       </div>
       ${shareCard}
-      <nav class="segmented" aria-label="Group sections">
-        ${TABS.map(([key, label]) => html`<a href="/g/${group.id}?tab=${key}" data-link aria-current="${tab === key ? "page" : "false"}">${label}</a>`)}
+      <nav class="segmented" aria-label="${t("group.sections")}">
+        ${TABS.map((key) => html`<a href="/g/${group.id}?tab=${key}" data-link aria-current="${tab === key ? "page" : "false"}">${t(`tab.${key}`)}</a>`)}
       </nav>
       ${body}
-      ${tab === "expenses" || tab === "balances" ? html`<button class="btn primary fab" data-add-expense>+ Add expense</button>` : ""}`,
+      ${tab === "expenses" || tab === "balances" ? html`<button class="btn primary fab" data-add-expense>${t("group.addExpense")}</button>` : ""}`,
   );
 
   const refresh = () => renderGroup(groupId).catch(showError);
@@ -508,7 +520,7 @@ async function renderGroup(groupId) {
 function expensesTab({ expenses, meId, group }, name) {
   const cur = group.currency;
   if (!expenses.length) {
-    return html`<div class="card empty"><p>No expenses yet.</p><button class="btn primary" data-add-expense>Add the first expense</button></div>`;
+    return html`<div class="card empty"><p>${t("expenses.empty")}</p><button class="btn primary" data-add-expense>${t("expenses.addFirst")}</button></div>`;
   }
   const byDate = new Map();
   for (const e of expenses) byDate.set(e.date, [...(byDate.get(e.date) ?? []), e]);
@@ -519,21 +531,20 @@ function expensesTab({ expenses, meId, group }, name) {
           const myShare = e.shares.find((s) => s.memberId === meId)?.amount ?? 0;
           const myNet = (e.paidBy === meId ? e.amount : 0) - myShare;
           const transfer = e.kind === "transfer";
-          const sub = transfer ? `${name(e.paidBy)} paid ${name(e.shares[0]?.memberId)}` : `Paid by ${name(e.paidBy)}${e.category ? ` · ${e.category}` : ""}`;
+          const paidBy = e.paidBy === meId ? t("expenses.paidByYou") : t("expenses.paidBy", { name: name(e.paidBy) });
+          const sub = transfer
+            ? t("expenses.transferSub", { from: name(e.paidBy), to: name(e.shares[0]?.memberId, { object: true }) })
+            : `${paidBy}${e.category ? ` · ${categoryLabel(e.category)}` : ""}`;
           const note =
             myNet === 0
               ? ""
-              : transfer
-                ? myNet > 0
-                  ? `you gave ${money(myNet, cur)}`
-                  : `you received ${money(-myNet, cur)}`
-                : myNet > 0
-                  ? `you lent ${money(myNet, cur)}`
-                  : `you owe ${money(-myNet, cur)}`;
+              : t(transfer ? (myNet > 0 ? "expenses.youGave" : "expenses.youReceived") : myNet > 0 ? "expenses.youLent" : "expenses.youOwe", {
+                  amount: money(Math.abs(myNet), cur),
+                });
           return html`<li>
             <button class="row" data-expense="${e.id}">
               <span class="avatar ${transfer ? "transfer" : ""}">${transfer ? "⇄" : initials(e.title)}</span>
-              <span class="grow"><span class="title">${e.title}</span><span class="muted small">${sub}</span></span>
+              <span class="grow"><span class="title">${expenseTitle(e)}</span><span class="muted small">${sub}</span></span>
               <span class="amount">${money(e.amount, cur)}<br /><span class="small ${transfer ? "muted" : myNet > 0 ? "pos" : myNet < 0 ? "neg" : "muted"}">${note}</span></span>
             </button>
           </li>`;
@@ -545,11 +556,11 @@ function expensesTab({ expenses, meId, group }, name) {
 function balancesTab({ members, settlements, meId, group }, name) {
   const cur = group.currency;
   const max = Math.max(1, ...members.map((m) => Math.abs(m.balance)));
-  return html`<h2>Balances</h2>
+  return html`<h2>${t("balances.title")}</h2>
     <ul class="list">
       ${members.map(
         (m) => html`<li class="bar-wrap">
-          <span class="name">${m.isMe ? `${m.name} (you)` : m.name}</span>
+          <span class="name">${m.isMe ? t("nameYou", { name: m.name }) : m.name}</span>
           <span class="bar-track" aria-hidden="true">
             <div>${m.balance < 0 ? html`<span class="bar neg" style="width:${(Math.abs(m.balance) / max) * 100}%"></span>` : ""}</div>
             <div>${m.balance > 0 ? html`<span class="bar pos" style="width:${(m.balance / max) * 100}%"></span>` : ""}</div>
@@ -558,23 +569,23 @@ function balancesTab({ members, settlements, meId, group }, name) {
         </li>`,
       )}
     </ul>
-    <h2 class="section">Settle up</h2>
+    <h2 class="section">${t("balances.settleUp")}</h2>
     ${settlements.length
-      ? html`<p class="muted small">Make these payments, then tap “Mark paid” to record them.</p>
+      ? html`<p class="muted small">${t("balances.settleHelp")}</p>
           <ul class="list">
             ${settlements.map(
               (s, i) => html`<li class="row">
-                <span class="grow"><strong>${name(s.from)}</strong> ${s.from === meId ? "pay" : "pays"} <strong>${name(s.to)}</strong></span>
+                <span class="grow">${s.from === meId ? th("balances.youPay", { to: name(s.to, { object: true }) }) : th("balances.pays", { from: name(s.from), to: name(s.to, { object: true }) })}</span>
                 <span class="amount">${money(s.amount, cur)}</span>
-                <button class="btn small" data-settle="${i}">Mark paid</button>
+                <button class="btn small" data-settle="${i}">${t("balances.markPaid")}</button>
               </li>`,
             )}
           </ul>`
-      : html`<div class="card empty">Everyone is settled up.</div>`}
-    <h2 class="section">Totals</h2>
+      : html`<div class="card empty">${t("balances.allSettled")}</div>`}
+    <h2 class="section">${t("balances.totals")}</h2>
     <ul class="list">
       ${members.map(
-        (m) => html`<li class="row"><span class="grow">${m.name}</span><span class="muted small">paid ${money(m.paid, cur)} · share ${money(m.spent, cur)}</span></li>`,
+        (m) => html`<li class="row"><span class="grow">${m.name}</span><span class="muted small">${t("balances.paidShare", { paid: money(m.paid, cur), share: money(m.spent, cur) })}</span></li>`,
       )}
     </ul>`;
 }
@@ -584,21 +595,21 @@ const groupLinkUrl = (group) => (group.shareToken ? inviteUrl(group.shareToken) 
 /** The group's share link: one link for everyone, e.g. dropped into a group chat. */
 function groupLinkCard(group, { compact } = {}) {
   return html`<div class="card share-card">
-    <h2>Invite people to ${group.name}</h2>
-    <p class="muted small">Share this link in your group chat. Anyone who opens it can sign in or create an account, then join this group.</p>
+    <h2>${t("link.inviteTitle", { name: group.name })}</h2>
+    <p class="muted small">${t("link.inviteHelp")}</p>
     <div class="link-row">
-      <label for="group-link-${compact ? "b" : "a"}" class="visually-hidden">Group link</label>
+      <label for="group-link-${compact ? "b" : "a"}" class="visually-hidden">${t("link.groupLink")}</label>
       <input id="group-link-${compact ? "b" : "a"}" readonly value="${groupLinkUrl(group)}" data-link-input />
-      <button class="btn primary" data-copy-link>Copy link</button>
-      ${navigator.share ? html`<button class="btn" data-share-link>Share…</button>` : ""}
+      <button class="btn primary" data-copy-link>${t("link.copy")}</button>
+      ${navigator.share ? html`<button class="btn" data-share-link>${t("link.share")}</button>` : ""}
     </div>
-    ${compact && group.isOwner ? html`<button class="btn ghost small danger" data-reset-link>Reset link</button>` : ""}
+    ${compact && group.isOwner ? html`<button class="btn ghost small danger" data-reset-link>${t("link.reset")}</button>` : ""}
   </div>`;
 }
 
 function shareGroupLink(group) {
   const url = groupLinkUrl(group);
-  navigator.share({ title: group.name, text: `Join "${group.name}" on BillSplit to split expenses`, url }).catch(() => {});
+  navigator.share({ title: group.name, text: t("link.shareText", { name: group.name }), url }).catch(() => {});
 }
 
 function bindGroupLink(group, refresh) {
@@ -608,10 +619,10 @@ function bindGroupLink(group, refresh) {
   $$("[data-reset-link]").forEach(
     (b) =>
       (b.onclick = async () => {
-        if (!confirm("Reset the group link? The current link stops working, and you'll need to share the new one.")) return;
+        if (!confirm(t("link.resetConfirm"))) return;
         try {
           await api(`/groups/${group.id}/invites/reset`, { method: "POST" });
-          toast("New link created");
+          toast(t("link.resetDone"));
           refresh();
         } catch (err) {
           toast(err.message);
@@ -624,12 +635,12 @@ function showShareDialog(group) {
   const url = groupLinkUrl(group);
   openDialog(
     html`<div class="sheet">
-      <div class="sheet-head"><h2>Group created</h2><button type="button" class="btn ghost small" data-close>Done</button></div>
-      <p>Share this link in your group chat. Everyone who opens it can sign in and join <strong>${group.name}</strong>.</p>
-      <div class="field"><label for="share-link" class="visually-hidden">Group link</label><input id="share-link" readonly value="${url}" /></div>
+      <div class="sheet-head"><h2>${t("share.created")}</h2><button type="button" class="btn ghost small" data-close>${t("action.done")}</button></div>
+      <p>${th("share.help", { name: group.name })}</p>
+      <div class="field"><label for="share-link" class="visually-hidden">${t("link.groupLink")}</label><input id="share-link" readonly value="${url}" /></div>
       <div class="actions">
-        <button class="btn primary" id="dlg-copy">Copy link</button>
-        ${navigator.share ? html`<button class="btn" id="dlg-share">Share…</button>` : ""}
+        <button class="btn primary" id="dlg-copy">${t("link.copy")}</button>
+        ${navigator.share ? html`<button class="btn" id="dlg-share">${t("link.share")}</button>` : ""}
       </div>
     </div>`,
     (dialog) => {
@@ -644,23 +655,29 @@ function showShareDialog(group) {
 
 function peopleTab({ group, members }) {
   return html`${groupLinkCard(group, { compact: true })}
-    <h2 class="section">People</h2>
+    <h2 class="section">${t("people.title")}</h2>
     <ul class="list">
       ${members.map(
         (m) => html`<li class="row">
           <span class="avatar">${initials(m.name)}</span>
           <span class="grow"><span class="title">${m.name}</span><span class="muted small">${
-            m.isMe ? `You${m.isOwner ? " · created this group" : ""}` : m.claimed ? `Joined${m.email ? ` · ${m.email}` : ""}` : "Not joined"
+            m.isMe
+              ? t(m.isOwner ? "people.youOwner" : "you")
+              : m.claimed
+                ? m.email
+                  ? t("people.joinedEmail", { email: m.email })
+                  : t("people.joined")
+                : t("people.notJoined")
           }</span></span>
-          <button class="btn small ghost" data-edit="${m.id}" aria-label="Edit ${m.name}">Edit</button>
+          <button class="btn small ghost" data-edit="${m.id}" aria-label="${t("people.editName", { name: m.name })}">${t("action.edit")}</button>
         </li>`,
       )}
     </ul>
-    <p class="muted small">Add someone who won't use the app, or add people now so they can pick their name when they join.</p>
+    <p class="muted small">${t("people.help")}</p>
     <form class="add-row" id="add-member">
-      <label for="new-person" class="visually-hidden">Name</label>
-      <input id="new-person" name="name" placeholder="Name" maxlength="60" required />
-      <button class="btn">Add person</button>
+      <label for="new-person" class="visually-hidden">${t("field.name")}</label>
+      <input id="new-person" name="name" placeholder="${t("field.name")}" maxlength="60" required />
+      <button class="btn">${t("people.add")}</button>
     </form>
     <p class="error" id="member-error"></p>`;
 }
@@ -683,12 +700,12 @@ function bindPeople({ group, members }, refresh) {
         const m = members.find((x) => x.id === b.dataset.edit);
         openDialog(
           html`<form class="sheet">
-            <div class="sheet-head"><h2>Edit ${m.name}</h2><button type="button" class="btn ghost small" data-close>Cancel</button></div>
-            <div class="field"><label for="m-name">Name</label><input id="m-name" name="name" value="${m.name}" maxlength="60" required /></div>
+            <div class="sheet-head"><h2>${t("people.editName", { name: m.name })}</h2><button type="button" class="btn ghost small" data-close>${t("action.cancel")}</button></div>
+            <div class="field"><label for="m-name">${t("field.name")}</label><input id="m-name" name="name" value="${m.name}" maxlength="60" required /></div>
             <p class="error"></p>
             <div class="actions">
-              <button class="btn primary">Save</button>
-              ${m.isMe ? "" : html`<button type="button" class="btn danger" id="remove-member">Remove from group</button>`}
+              <button class="btn primary">${t("action.save")}</button>
+              ${m.isMe ? "" : html`<button type="button" class="btn danger" id="remove-member">${t("people.remove")}</button>`}
             </div>
           </form>`,
           (dialog) => {
@@ -706,7 +723,7 @@ function bindPeople({ group, members }, refresh) {
             const remove = $("#remove-member", dialog);
             if (remove)
               remove.onclick = async () => {
-                if (!confirm(`Remove ${m.name} from the group?`)) return;
+                if (!confirm(t("people.removeConfirm", { name: m.name }))) return;
                 try {
                   await api(`/groups/${group.id}/members/${m.id}`, { method: "DELETE" });
                   dialog.close();
@@ -724,26 +741,26 @@ function bindPeople({ group, members }, refresh) {
 function settingsTab({ group }) {
   const cur = group.currency;
   return html`<form class="card" id="group-form">
-      <h2>Group details</h2>
-      <div class="field"><label for="gs-name">Name</label><input id="gs-name" name="name" value="${group.name}" maxlength="80" required /></div>
+      <h2>${t("settings.details")}</h2>
+      <div class="field"><label for="gs-name">${t("field.name")}</label><input id="gs-name" name="name" value="${group.name}" maxlength="80" required /></div>
       <div class="grid2">
-        <div class="field"><label for="gs-cur">Currency</label><select id="gs-cur" name="currency">${[...new Set([cur, ...CURRENCIES])].map((c) => html`<option ${c === cur ? raw("selected") : ""}>${c}</option>`)}</select></div>
-        <div class="field"><label for="gs-desc">Description</label><input id="gs-desc" name="description" value="${group.description}" maxlength="300" /></div>
+        <div class="field"><label for="gs-cur">${t("field.currency")}</label><select id="gs-cur" name="currency">${[...new Set([cur, ...CURRENCIES])].map((c) => html`<option ${c === cur ? raw("selected") : ""}>${c}</option>`)}</select></div>
+        <div class="field"><label for="gs-desc">${t("field.description")}</label><input id="gs-desc" name="description" value="${group.description}" maxlength="300" /></div>
       </div>
       <p class="error"></p>
-      <button class="btn primary">Save</button>
+      <button class="btn primary">${t("action.save")}</button>
     </form>
     <div class="card">
-      <h2>Export</h2>
-      <p class="muted small">Download all expenses with each person's share.</p>
-      <a class="btn" href="/api/groups/${group.id}/export.csv" download>Download CSV</a>
+      <h2>${t("settings.export")}</h2>
+      <p class="muted small">${t("settings.exportHelp")}</p>
+      <a class="btn" href="/api/groups/${group.id}/export.csv?lang=${getLanguage()}" download>${t("settings.downloadCsv")}</a>
     </div>
     <div class="card">
-      <h2>Leave or delete</h2>
-      <p class="muted small">Leaving keeps your expenses in the group. ${group.isOwner ? "Deleting removes the group and all expenses for everyone." : ""}</p>
+      <h2>${t("settings.leaveOrDelete")}</h2>
+      <p class="muted small">${t("settings.leaveHelp")} ${group.isOwner ? t("settings.deleteHelp") : ""}</p>
       <div class="actions">
-        <button class="btn danger" id="leave-group">Leave group</button>
-        ${group.isOwner ? html`<button class="btn danger" id="delete-group">Delete group</button>` : ""}
+        <button class="btn danger" id="leave-group">${t("settings.leave")}</button>
+        ${group.isOwner ? html`<button class="btn danger" id="delete-group">${t("settings.delete")}</button>` : ""}
       </div>
     </div>`;
 }
@@ -754,23 +771,23 @@ function bindSettings({ group }, refresh) {
     e.preventDefault();
     try {
       await api(`/groups/${group.id}`, { method: "PATCH", body: { name: gForm.name.value, currency: gForm.currency.value, description: gForm.description.value } });
-      toast("Saved");
+      toast(t("toast.saved"));
       refresh();
     } catch (err) {
       formError(gForm, err);
     }
   };
   $("#leave-group").onclick = async () => {
-    if (!confirm("Leave this group? You'll no longer see it. Your expenses stay in the group.")) return;
+    if (!confirm(t("settings.leaveConfirm"))) return;
     await api(`/groups/${group.id}/leave`, { method: "POST" });
     navigate("/");
   };
   const del = $("#delete-group");
   if (del)
     del.onclick = async () => {
-      if (prompt(`This deletes the group and all its expenses for everyone. Type the group name to confirm:`) !== group.name) return;
+      if (prompt(t("settings.deleteConfirm")) !== group.name) return;
       await api(`/groups/${group.id}`, { method: "DELETE" });
-      toast("Group deleted");
+      toast(t("settings.deleted"));
       navigate("/");
     };
 }
@@ -791,39 +808,40 @@ function openExpense({ group, members, meId }, expense, onDone, isNewFromTemplat
     for (const m of members) state.weights.set(m.id, 1);
   }
   const firstOther = members.find((m) => m.id !== meId)?.id;
-  const label = (m) => (m.id === meId ? `${m.name} (you)` : m.name);
+  const label = (m) => (m.id === meId ? t("nameYou", { name: m.name }) : m.name);
+  const heading = (kind) => t(`expense.${isEdit ? "edit" : "add"}${kind === "transfer" ? "Payment" : "Expense"}`);
 
   const dialog = openDialog(
     html`<form class="sheet" novalidate>
-      <div class="sheet-head"><h2>${isEdit ? "Edit" : "Add"} ${state.kind === "transfer" ? "payment" : "expense"}</h2><button type="button" class="btn ghost small" data-close>Cancel</button></div>
-      <div class="segmented" role="group" aria-label="Type">
-        <button type="button" data-kind="expense" aria-pressed="${state.kind === "expense"}">Expense</button>
-        <button type="button" data-kind="transfer" aria-pressed="${state.kind === "transfer"}">Payment between people</button>
+      <div class="sheet-head"><h2>${heading(state.kind)}</h2><button type="button" class="btn ghost small" data-close>${t("action.cancel")}</button></div>
+      <div class="segmented" role="group" aria-label="${t("expense.type")}">
+        <button type="button" data-kind="expense" aria-pressed="${state.kind === "expense"}">${t("expense.expense")}</button>
+        <button type="button" data-kind="transfer" aria-pressed="${state.kind === "transfer"}">${t("expense.transfer")}</button>
       </div>
-      <div class="field" id="title-field"><label for="x-title">What was it for?</label><input id="x-title" name="title" maxlength="100" value="${expense?.title ?? ""}" placeholder="e.g. Dinner" /></div>
+      <div class="field" id="title-field"><label for="x-title">${t("expense.what")}</label><input id="x-title" name="title" maxlength="100" value="${expense?.title ?? ""}" placeholder="${t("expense.whatPlaceholder")}" /></div>
       <div class="grid2">
-        <div class="field"><label for="x-amount">Amount (${cur})</label><input id="x-amount" name="amount" inputmode="decimal" value="${expense ? centsToInput(expense.amount) : ""}" placeholder="0.00" required /></div>
-        <div class="field"><label for="x-date">Date</label><input id="x-date" name="date" type="date" value="${expense?.date ?? today()}" required /></div>
+        <div class="field"><label for="x-amount">${t("expense.amount", { currency: cur })}</label><input id="x-amount" name="amount" inputmode="decimal" value="${expense ? centsToInput(expense.amount) : ""}" placeholder="0.00" required /></div>
+        <div class="field"><label for="x-date">${t("expense.date")}</label><input id="x-date" name="date" type="date" value="${expense?.date ?? today()}" required /></div>
       </div>
       <div class="grid2">
-        <div class="field"><label for="x-paid" id="paid-label">Paid by</label><select id="x-paid" name="paidBy">${members.map((m) => html`<option value="${m.id}" ${(expense?.paidBy ?? meId) === m.id ? raw("selected") : ""}>${label(m)}</option>`)}</select></div>
-        <div class="field" id="category-field"><label for="x-cat">Category</label><select id="x-cat" name="category">${[...new Set([...(expense?.category ? [expense.category] : []), ...CATEGORIES])].map((c) => html`<option value="${c}" ${c === (expense?.category ?? "") ? raw("selected") : ""}>${c || "None"}</option>`)}</select></div>
-        <div class="field" id="to-field"><label for="x-to">To</label><select id="x-to" name="to">${members.map((m) => html`<option value="${m.id}" ${(expense?.kind === "transfer" ? expense.shares[0]?.memberId : firstOther) === m.id ? raw("selected") : ""}>${label(m)}</option>`)}</select></div>
+        <div class="field"><label for="x-paid" id="paid-label">${t("expense.paidBy")}</label><select id="x-paid" name="paidBy">${members.map((m) => html`<option value="${m.id}" ${(expense?.paidBy ?? meId) === m.id ? raw("selected") : ""}>${label(m)}</option>`)}</select></div>
+        <div class="field" id="category-field"><label for="x-cat">${t("expense.category")}</label><select id="x-cat" name="category">${[...new Set([...(expense?.category ? [expense.category] : []), ...CATEGORIES])].map((c) => html`<option value="${c}" ${c === (expense?.category ?? "") ? raw("selected") : ""}>${c ? categoryLabel(c) : t("expense.noCategory")}</option>`)}</select></div>
+        <div class="field" id="to-field"><label for="x-to">${t("expense.to")}</label><select id="x-to" name="to">${members.map((m) => html`<option value="${m.id}" ${(expense?.kind === "transfer" ? expense.shares[0]?.memberId : firstOther) === m.id ? raw("selected") : ""}>${label(m)}</option>`)}</select></div>
       </div>
       <div id="split-section">
-        <label>Split between</label>
-        <div class="segmented" role="group" aria-label="Split mode">
-          <button type="button" data-mode="equal" aria-pressed="${state.mode === "equal"}">Equally</button>
-          <button type="button" data-mode="shares" aria-pressed="${state.mode === "shares"}">By shares</button>
-          <button type="button" data-mode="amounts" aria-pressed="${state.mode === "amounts"}">By amount</button>
+        <label>${t("expense.splitBetween")}</label>
+        <div class="segmented" role="group" aria-label="${t("expense.splitMode")}">
+          <button type="button" data-mode="equal" aria-pressed="${state.mode === "equal"}">${t("expense.equally")}</button>
+          <button type="button" data-mode="shares" aria-pressed="${state.mode === "shares"}">${t("expense.byShares")}</button>
+          <button type="button" data-mode="amounts" aria-pressed="${state.mode === "amounts"}">${t("expense.byAmount")}</button>
         </div>
         <div id="split-rows"></div>
         <p class="muted small" id="split-summary"></p>
       </div>
       <p class="error"></p>
       <div class="actions">
-        <button class="btn primary" style="flex:1">${isEdit ? "Save" : "Add"}</button>
-        ${isEdit ? html`<button type="button" class="btn danger" id="delete-expense">Delete</button>` : ""}
+        <button class="btn primary" style="flex:1">${t(isEdit ? "action.save" : "action.add")}</button>
+        ${isEdit ? html`<button type="button" class="btn danger" id="delete-expense">${t("action.delete")}</button>` : ""}
       </div>
     </form>`,
   );
@@ -855,8 +873,8 @@ function openExpense({ group, members, meId }, expense, onDone, isNewFromTemplat
           state.mode === "equal"
             ? ""
             : state.mode === "shares"
-              ? html`<input class="weight" type="number" min="0" step="1" inputmode="numeric" data-weight="${m.id}" value="${w}" aria-label="Shares for ${m.name}" />`
-              : html`<input class="weight" inputmode="decimal" data-weight="${m.id}" value="${w ? centsToInput(w) : ""}" placeholder="0.00" aria-label="Amount for ${m.name}" />`;
+              ? html`<input class="weight" type="number" min="0" step="1" inputmode="numeric" data-weight="${m.id}" value="${w}" aria-label="${t("expense.sharesFor", { name: m.name })}" />`
+              : html`<input class="weight" inputmode="decimal" data-weight="${m.id}" value="${w ? centsToInput(w) : ""}" placeholder="0.00" aria-label="${t("expense.amountFor", { name: m.name })}" />`;
         return html`<div class="split-row">
           <input type="checkbox" id="chk-${m.id}" data-check="${m.id}" ${w > 0 ? raw("checked") : ""} />
           <label class="name" for="chk-${m.id}">${label(m)}</label>
@@ -901,11 +919,13 @@ function openExpense({ group, members, meId }, expense, onDone, isNewFromTemplat
     if (state.mode === "amounts") {
       const assigned = [...state.weights.values()].reduce((a, b) => a + b, 0);
       const left = amount - assigned;
-      summary.textContent = left === 0 ? `All ${money(amount, cur)} assigned.` : left > 0 ? `${money(left, cur)} left to assign.` : `${money(-left, cur)} too much assigned.`;
+      summary.textContent = t(left === 0 ? "expense.allAssigned" : left > 0 ? "expense.leftToAssign" : "expense.tooMuch", {
+        amount: money(left === 0 ? amount : Math.abs(left), cur),
+      });
       summary.className = `small ${left === 0 ? "muted" : "neg"}`;
     } else {
       summary.className = "muted small";
-      summary.textContent = active ? `Split between ${active} ${active === 1 ? "person" : "people"}.` : "Pick at least one person.";
+      summary.textContent = active ? t("expense.splitCount", { count: active }) : t("expense.pickOne");
     }
   }
 
@@ -916,8 +936,8 @@ function openExpense({ group, members, meId }, expense, onDone, isNewFromTemplat
     $("#category-field", form).hidden = transfer;
     $("#to-field", form).hidden = !transfer;
     $("#title-field", form).hidden = transfer;
-    $("#paid-label", form).textContent = transfer ? "From" : "Paid by";
-    $(".sheet-head h2", dialog).textContent = `${isEdit ? "Edit" : "Add"} ${transfer ? "payment" : "expense"}`;
+    $("#paid-label", form).textContent = t(transfer ? "expense.from" : "expense.paidBy");
+    $(".sheet-head h2", dialog).textContent = heading(state.kind);
   }
 
   $$("[data-kind]", form).forEach((b) => (b.onclick = () => ((state.kind = b.dataset.kind), applyKind())));
@@ -944,10 +964,10 @@ function openExpense({ group, members, meId }, expense, onDone, isNewFromTemplat
     e.preventDefault();
     formError(form);
     const amount = parseAmount(form.amount.value);
-    if (!Number.isFinite(amount) || amount <= 0) return formError(form, new Error("Enter a valid amount"));
+    if (!Number.isFinite(amount) || amount <= 0) return formError(form, new Error(t("expense.invalidAmount")));
     const transfer = state.kind === "transfer";
-    if (!transfer && !form.title.value.trim()) return formError(form, new Error("Enter what the expense was for"));
-    if (transfer && form.to.value === form.paidBy.value) return formError(form, new Error("Pick two different people"));
+    if (!transfer && !form.title.value.trim()) return formError(form, new Error(t("expense.titleRequired")));
+    if (transfer && form.to.value === form.paidBy.value) return formError(form, new Error(t("expense.samePerson")));
     const body = {
       kind: state.kind,
       title: transfer ? "Payment" : form.title.value,
@@ -965,7 +985,7 @@ function openExpense({ group, members, meId }, expense, onDone, isNewFromTemplat
         if (isEdit) await api(`/groups/${group.id}/expenses/${expense.id}`, { method: "PUT", body });
         else await api(`/groups/${group.id}/expenses`, { method: "POST", body });
         dialog.close();
-        toast(isEdit ? "Saved" : transfer ? "Payment recorded" : "Expense added");
+        toast(t(isEdit ? "toast.saved" : transfer ? "expense.paymentRecorded" : "expense.added"));
         onDone();
       } catch (err) {
         formError(form, err);
@@ -975,10 +995,10 @@ function openExpense({ group, members, meId }, expense, onDone, isNewFromTemplat
   const del = $("#delete-expense", form);
   if (del)
     del.onclick = async () => {
-      if (!confirm(`Delete "${expense.title}"?`)) return;
+      if (!confirm(t("expense.deleteConfirm", { title: expenseTitle(expense) }))) return;
       await api(`/groups/${group.id}/expenses/${expense.id}`, { method: "DELETE" });
       dialog.close();
-      toast("Deleted");
+      toast(t("toast.deleted"));
       onDone();
     };
 }
@@ -989,22 +1009,22 @@ async function renderInvite(token) {
   const invite = await api(`/invites/${token}`);
   if (invite.alreadyMember) return navigate(`/g/${invite.groupId}`, { replace: true });
 
-  const heading = html`<p class="step-label">${invite.invitedBy ? `${invite.invitedBy} invited you to join` : "You're invited to join"}</p>
+  const heading = html`<p class="step-label">${invite.invitedBy ? t("invite.invitedBy", { name: invite.invitedBy }) : t("invite.invited")}</p>
     <h1>${invite.group.name}</h1>
     ${invite.group.description ? html`<p class="muted">${invite.group.description}</p>` : ""}`;
 
   if (invite.status !== "active") {
     render(
       app,
-      html`<div class="card narrow">${heading}<p><strong>This link no longer works.</strong> Ask the group for the current link.</p>
-        <a class="btn" href="/" data-link>Go to BillSplit</a></div>`,
+      html`<div class="card narrow">${heading}<p>${th("invite.dead")}</p>
+        <a class="btn" href="/" data-link>${t("invite.home")}</a></div>`,
     );
     return;
   }
 
   if (!invite.signedIn) {
     render(app, html`<div class="card narrow">${heading}<div id="signin-card"></div></div>`);
-    signInForm($("#signin-card"), { next: `/join/${token}`, title: "Sign in to join", button: "Continue" });
+    signInForm($("#signin-card"), { next: `/join/${token}`, title: t("signin.toJoin") });
     return;
   }
 
@@ -1015,18 +1035,18 @@ async function renderInvite(token) {
       <form id="join-form">
         ${open.length
           ? html`<fieldset>
-              <legend>Are you already on the list?</legend>
+              <legend>${t("invite.onList")}</legend>
               <ul class="list choose">
                 ${open.map(
-                  (p) => html`<li><label class="row"><input type="radio" name="who" value="${p.id}" ${p.id === invite.suggestedMemberId ? raw("checked") : ""} /> <span class="grow">I'm ${p.name}</span></label></li>`,
+                  (p) => html`<li><label class="row"><input type="radio" name="who" value="${p.id}" ${p.id === invite.suggestedMemberId ? raw("checked") : ""} /> <span class="grow">${t("invite.iAm", { name: p.name })}</span></label></li>`,
                 )}
-                <li><label class="row"><input type="radio" name="who" value="" ${invite.suggestedMemberId ? "" : raw("checked")} /> <span class="grow">I'm not on the list</span></label></li>
+                <li><label class="row"><input type="radio" name="who" value="" ${invite.suggestedMemberId ? "" : raw("checked")} /> <span class="grow">${t("invite.notOnList")}</span></label></li>
               </ul>
             </fieldset>`
           : html`<input type="hidden" name="who" value="" />`}
-        <div class="field" id="name-field"><label for="new-name">Your name in this group</label><input id="new-name" name="newName" value="${me.name}" maxlength="60" /></div>
+        <div class="field" id="name-field"><label for="new-name">${t("invite.nameInGroup")}</label><input id="new-name" name="newName" value="${me.name}" maxlength="60" /></div>
         <p class="error"></p>
-        <button class="btn primary block">Join group</button>
+        <button class="btn primary block">${t("invite.join")}</button>
       </form>
     </div>`,
   );
@@ -1041,7 +1061,7 @@ async function renderInvite(token) {
     withBusy($("button.primary", form), async () => {
       try {
         const { id } = await api(`/invites/${token}/join`, { method: "POST", body: who ? { memberId: who } : { name: form.newName.value } });
-        toast("You joined the group");
+        toast(t("invite.joined"));
         navigate(`/g/${id}`, { replace: true });
       } catch (err) {
         formError(form, err);
@@ -1053,46 +1073,24 @@ async function renderInvite(token) {
 // ---------- admin ----------
 
 const ADMIN_TABS = [
-  ["/admin", "Overview"],
-  ["/admin/users", "Users"],
-  ["/admin/groups", "Groups"],
-  ["/admin/signins", "Sign-ins & emails"],
-  ["/admin/audit", "Audit log"],
+  ["/admin", "admin.overview"],
+  ["/admin/users", "admin.users"],
+  ["/admin/groups", "admin.groups"],
+  ["/admin/signins", "admin.signins"],
+  ["/admin/audit", "admin.audit"],
 ];
-const ACTIONS = {
-  "auth.email_sent": "Sign-in email sent",
-  "auth.email_failed": "Sign-in email failed",
-  "auth.rate_limited": "Sign-in rate limited",
-  "auth.code_wrong": "Wrong sign-in code",
-  "auth.signed_in": "Signed in",
-  "auth.signed_out": "Signed out",
-  "user.registered": "Account registered",
-  "user.renamed": "Changed name",
-  "group.created": "Created group",
-  "group.updated": "Updated group",
-  "group.deleted": "Deleted group",
-  "member.added": "Added person",
-  "member.renamed": "Renamed person",
-  "member.removed": "Removed person",
-  "member.left": "Left group",
-  "invite.created": "Created invite",
-  "invite.revoked": "Cancelled invite",
-  "invite.reset": "Reset group link",
-  "invite.used": "Joined via invite",
-  "expense.created": "Added expense",
-  "expense.updated": "Edited expense",
-  "expense.deleted": "Deleted expense",
-};
+const actionLabel = (action) => (hasTranslation(`audit.${action}`) ? t(`audit.${action}`) : action);
 const STATUS_PILL = { verified: "ok", used: "ok", sent: "ok", active: "warn", pending: "warn", failed: "bad", locked: "bad" };
-const pill = (status) => html`<span class="pill ${STATUS_PILL[status] ?? ""}">${status ?? "—"}</span>`;
+const pill = (status) =>
+  html`<span class="pill ${STATUS_PILL[status] ?? ""}">${status ? (hasTranslation(`status.${status}`) ? t(`status.${status}`) : status) : "—"}</span>`;
 
 function adminShell(current, body) {
   render(
     app,
     html`<div class="admin">
-      <h1>Admin</h1>
-      <nav class="tabs" aria-label="Admin sections">
-        ${ADMIN_TABS.map(([href, label]) => html`<a href="${href}" data-link aria-current="${current === href ? "page" : "false"}">${label}</a>`)}
+      <h1>${t("admin.title")}</h1>
+      <nav class="tabs" aria-label="${t("admin.sections")}">
+        ${ADMIN_TABS.map(([href, key]) => html`<a href="${href}" data-link aria-current="${current === href ? "page" : "false"}">${t(key)}</a>`)}
       </nav>
       ${body}
     </div>`,
@@ -1100,17 +1098,17 @@ function adminShell(current, body) {
 }
 
 function auditTable(entries, { showGroup = true } = {}) {
-  if (!entries.length) return html`<p class="muted">No entries.</p>`;
+  if (!entries.length) return html`<p class="muted">${t("admin.noEntries")}</p>`;
   return html`<div class="table-wrap"><table>
-    <thead><tr><th>Time</th><th>Action</th><th>By</th>${showGroup ? html`<th>Group</th>` : ""}<th>Details</th></tr></thead>
+    <thead><tr><th>${t("admin.time")}</th><th>${t("admin.action")}</th><th>${t("admin.by")}</th>${showGroup ? html`<th>${t("admin.group")}</th>` : ""}<th>${t("admin.details")}</th></tr></thead>
     <tbody>
       ${entries.map((a) => {
         const details = JSON.parse(a.details || "{}");
         return html`<tr>
           <td class="nowrap">${formatTime(a.at)}</td>
-          <td><span title="${a.action}">${ACTIONS[a.action] ?? a.action}</span></td>
+          <td><span title="${a.action}">${actionLabel(a.action)}</span></td>
           <td>${a.actor_id ? html`<a href="/admin/users/${a.actor_id}" data-link>${a.actor_email}</a>` : html`<span class="muted">${details.email ?? "—"}</span>`}</td>
-          ${showGroup ? html`<td>${a.group_id ? html`<a href="/admin/groups/${a.group_id}" data-link>${a.group_name ?? "(deleted)"}</a>` : "—"}</td>` : ""}
+          ${showGroup ? html`<td>${a.group_id ? html`<a href="/admin/groups/${a.group_id}" data-link>${a.group_name ?? t("admin.deleted")}</a>` : "—"}</td>` : ""}
           <td class="details"><code>${Object.keys(details).length ? JSON.stringify(details) : ""}</code>${a.ip ? html`<span class="muted small"> · ${a.ip}</span>` : ""}</td>
         </tr>`;
       })}
@@ -1118,14 +1116,14 @@ function auditTable(entries, { showGroup = true } = {}) {
 }
 
 function signInsTable(rows, { showEmail = true } = {}) {
-  if (!rows.length) return html`<p class="muted">No sign-ins.</p>`;
+  if (!rows.length) return html`<p class="muted">${t("admin.noSignins")}</p>`;
   return html`<div class="table-wrap"><table>
-    <thead><tr><th>Requested</th>${showEmail ? html`<th>Email</th>` : ""}<th>Verification</th><th>Email delivery</th><th>Wrong codes</th><th>Then went to</th></tr></thead>
+    <thead><tr><th>${t("admin.requested")}</th>${showEmail ? html`<th>${t("admin.email")}</th>` : ""}<th>${t("admin.verification")}</th><th>${t("admin.delivery")}</th><th>${t("admin.wrongCodes")}</th><th>${t("admin.wentTo")}</th></tr></thead>
     <tbody>
       ${rows.map(
         (r) => html`<tr>
           <td class="nowrap">${formatTime(r.created_at)}</td>
-          ${showEmail ? html`<td>${r.user_id ? html`<a href="/admin/users/${r.user_id}" data-link>${r.email}</a>` : r.email}${r.registered ? html` <span class="pill ok">new account</span>` : ""}</td>` : ""}
+          ${showEmail ? html`<td>${r.user_id ? html`<a href="/admin/users/${r.user_id}" data-link>${r.email}</a>` : r.email}${r.registered ? html` <span class="pill ok">${t("admin.newAccount")}</span>` : ""}</td>` : ""}
           <td>${pill(r.status)}${r.used_at ? html` <span class="muted small">${formatTime(r.used_at)}</span>` : ""}</td>
           <td>${pill(r.email_status)}${r.email_error ? html` <span class="neg small">${r.email_error}</span>` : ""}</td>
           <td>${r.attempts}</td>
@@ -1143,12 +1141,12 @@ async function renderAdmin(path) {
     return adminShell(
       path,
       html`<div class="stats four">
-        ${tile("Users", o.users, `${o.users_7d} new · ${o.active_7d} active in 7 days`)}
-        ${tile("Groups", o.groups, `${o.expenses} expenses`)}
-        ${tile("People in groups", o.people, `${o.joined_people} with an account`)}
-        ${tile("Joins via links", o.link_joins, `${o.open_invites} active links`)}
-        ${tile("Sign-ins (24h)", o.signins_24h, `${o.signins_verified_24h} verified`)}
-        ${tile("Emails (24h)", o.emails_24h, html`<span class="${o.emails_failed_24h ? "neg" : ""}">${o.emails_failed_24h} failed</span>`)}
+        ${tile(t("admin.users"), o.users, t("admin.usersSub", { new: o.users_7d, active: o.active_7d }))}
+        ${tile(t("admin.groups"), o.groups, t("admin.expensesCount", { count: o.expenses }))}
+        ${tile(t("admin.peopleInGroups"), o.people, t("admin.withAccount", { count: o.joined_people }))}
+        ${tile(t("admin.linkJoins"), o.link_joins, t("admin.activeLinks", { count: o.open_invites }))}
+        ${tile(t("admin.signins24h"), o.signins_24h, t("admin.verifiedCount", { count: o.signins_verified_24h }))}
+        ${tile(t("admin.emails24h"), o.emails_24h, html`<span class="${o.emails_failed_24h ? "neg" : ""}">${t("admin.failedCount", { count: o.emails_failed_24h })}</span>`)}
       </div>`,
     );
   }
@@ -1157,11 +1155,11 @@ async function renderAdmin(path) {
     return adminShell(
       path,
       html`<div class="table-wrap"><table>
-        <thead><tr><th>Email</th><th>Name</th><th>Registered</th><th>Last sign-in</th><th>Groups</th><th>Sessions</th></tr></thead>
+        <thead><tr><th>${t("admin.email")}</th><th>${t("admin.name")}</th><th>${t("admin.registered")}</th><th>${t("admin.lastSignin")}</th><th>${t("admin.groups")}</th><th>${t("admin.sessions")}</th></tr></thead>
         <tbody>${users.map(
           (u) => html`<tr><td><a href="/admin/users/${u.id}" data-link>${u.email}</a></td><td>${u.name || html`<span class="muted">—</span>`}</td>
             <td class="nowrap">${formatTime(u.created_at)}</td><td class="nowrap">${formatTime(u.last_login_at)}</td>
-            <td>${u.groups}${u.owned_groups ? html` <span class="muted small">(${u.owned_groups} owned)</span>` : ""}</td><td>${u.sessions}</td></tr>`,
+            <td>${u.groups}${u.owned_groups ? html` <span class="muted small">${t("admin.owned", { count: u.owned_groups })}</span>` : ""}</td><td>${u.sessions}</td></tr>`,
         )}</tbody></table></div>`,
     );
   }
@@ -1170,15 +1168,15 @@ async function renderAdmin(path) {
     return adminShell(
       "/admin/users",
       html`<h2>${d.user.email}</h2>
-        <p class="muted">${d.user.name || "No name yet"} · registered ${formatTime(d.user.created_at)} · last sign-in ${formatTime(d.user.last_login_at)}</p>
-        <h3>Groups</h3>
+        <p class="muted">${t("admin.userMeta", { name: d.user.name || t("admin.noName"), registered: formatTime(d.user.created_at), lastSignin: formatTime(d.user.last_login_at) })}</p>
+        <h3>${t("admin.groups")}</h3>
         ${d.groups.length
-          ? html`<div class="table-wrap"><table><thead><tr><th>Group</th><th>As</th><th>Role</th><th>Created</th></tr></thead><tbody>
-              ${d.groups.map((g) => html`<tr><td><a href="/admin/groups/${g.id}" data-link>${g.name}</a></td><td>${g.member_name}</td><td>${g.is_owner ? "Owner" : "Member"}</td><td class="nowrap">${formatTime(g.created_at)}</td></tr>`)}
+          ? html`<div class="table-wrap"><table><thead><tr><th>${t("admin.group")}</th><th>${t("admin.as")}</th><th>${t("admin.role")}</th><th>${t("admin.created")}</th></tr></thead><tbody>
+              ${d.groups.map((g) => html`<tr><td><a href="/admin/groups/${g.id}" data-link>${g.name}</a></td><td>${g.member_name}</td><td>${t(g.is_owner ? "admin.owner" : "admin.member")}</td><td class="nowrap">${formatTime(g.created_at)}</td></tr>`)}
             </tbody></table></div>`
-          : html`<p class="muted">Not in any groups.</p>`}
-        <h3>Sign-ins</h3>${signInsTable(d.signins, { showEmail: false })}
-        <h3>Activity</h3>${auditTable(d.audit)}`,
+          : html`<p class="muted">${t("admin.noGroups")}</p>`}
+        <h3>${t("admin.signinsTitle")}</h3>${signInsTable(d.signins, { showEmail: false })}
+        <h3>${t("admin.activity")}</h3>${auditTable(d.audit)}`,
     );
   }
   if (path === "/admin/groups") {
@@ -1186,10 +1184,10 @@ async function renderAdmin(path) {
     return adminShell(
       path,
       html`<div class="table-wrap"><table>
-        <thead><tr><th>Group</th><th>Owner</th><th>People</th><th>Expenses</th><th>Total</th><th>Open invites</th><th>Created</th></tr></thead>
+        <thead><tr><th>${t("admin.group")}</th><th>${t("admin.owner")}</th><th>${t("admin.people")}</th><th>${t("admin.expenses")}</th><th>${t("admin.total")}</th><th>${t("admin.openInvites")}</th><th>${t("admin.created")}</th></tr></thead>
         <tbody>${groups.map(
           (g) => html`<tr><td><a href="/admin/groups/${g.id}" data-link>${g.name}</a></td><td>${g.owner_email ?? "—"}</td>
-            <td>${g.joined}/${g.people} joined</td><td>${g.expenses}</td><td class="nowrap">${money(g.total, g.currency)}</td><td>${g.open_invites}</td><td class="nowrap">${formatTime(g.created_at)}</td></tr>`,
+            <td>${t("admin.joinedOf", { joined: g.joined, people: g.people })}</td><td>${g.expenses}</td><td class="nowrap">${money(g.total, g.currency)}</td><td>${g.open_invites}</td><td class="nowrap">${formatTime(g.created_at)}</td></tr>`,
         )}</tbody></table></div>`,
     );
   }
@@ -1199,29 +1197,29 @@ async function renderAdmin(path) {
     return adminShell(
       "/admin/groups",
       html`<h2>${g.name}</h2>
-        <p class="muted">${g.currency} · created ${formatTime(g.created_at)} by ${g.owner_id ? html`<a href="/admin/users/${g.owner_id}" data-link>${g.owner_email}</a>` : "—"}</p>
-        <h3>People</h3>
-        <div class="table-wrap"><table><thead><tr><th>Name</th><th>Account</th><th>Last sign-in</th><th>Balance</th><th>Added</th></tr></thead><tbody>
+        <p class="muted">${g.currency} · ${t("admin.createdBy", { time: formatTime(g.created_at) })} ${g.owner_id ? html`<a href="/admin/users/${g.owner_id}" data-link>${g.owner_email}</a>` : "—"}</p>
+        <h3>${t("admin.people")}</h3>
+        <div class="table-wrap"><table><thead><tr><th>${t("admin.name")}</th><th>${t("admin.account")}</th><th>${t("admin.lastSignin")}</th><th>${t("admin.balance")}</th><th>${t("admin.added")}</th></tr></thead><tbody>
           ${d.people.map(
-            (p) => html`<tr><td>${p.name}</td><td>${p.user_id ? html`<a href="/admin/users/${p.user_id}" data-link>${p.email}</a>` : html`<span class="pill">not joined</span>`}</td>
+            (p) => html`<tr><td>${p.name}</td><td>${p.user_id ? html`<a href="/admin/users/${p.user_id}" data-link>${p.email}</a>` : html`<span class="pill">${t("admin.notJoined")}</span>`}</td>
               <td class="nowrap">${formatTime(p.last_login_at)}</td><td class="nowrap">${money(p.balance, g.currency)}</td><td class="nowrap">${formatTime(p.created_at)}</td></tr>`,
           )}
         </tbody></table></div>
-        <h3>Invites</h3>
+        <h3>${t("admin.invites")}</h3>
         ${d.invites.length
-          ? html`<div class="table-wrap"><table><thead><tr><th>Link</th><th>Status</th><th>Joins</th><th>Created</th><th>By</th><th>Last used</th></tr></thead><tbody>
+          ? html`<div class="table-wrap"><table><thead><tr><th>${t("admin.link")}</th><th>${t("admin.status")}</th><th>${t("admin.joins")}</th><th>${t("admin.created")}</th><th>${t("admin.by")}</th><th>${t("admin.lastUsed")}</th></tr></thead><tbody>
               ${d.invites.map(
-                (i) => html`<tr><td>${i.multi_use ? "Group link" : i.label ? `Personal: ${i.label}` : "Personal"}</td><td>${pill(i.status)}</td><td>${i.use_count}</td><td class="nowrap">${formatTime(i.created_at)}</td>
+                (i) => html`<tr><td>${i.multi_use ? t("link.groupLink") : i.label ? t("admin.personalLabel", { label: i.label }) : t("admin.personal")}</td><td>${pill(i.status)}</td><td>${i.use_count}</td><td class="nowrap">${formatTime(i.created_at)}</td>
                   <td>${i.created_by_email ?? "—"}</td><td>${i.used_by_email ? html`${i.used_by_email} <span class="muted small">${formatTime(i.used_at)}</span>` : formatTime(i.last_used_at)}</td></tr>`,
               )}
             </tbody></table></div>`
-          : html`<p class="muted">No invites.</p>`}
-        <h3>Activity</h3>${auditTable(d.audit, { showGroup: false })}`,
+          : html`<p class="muted">${t("admin.noInvites")}</p>`}
+        <h3>${t("admin.activity")}</h3>${auditTable(d.audit, { showGroup: false })}`,
     );
   }
   if (path === "/admin/signins") {
     const rows = await api(`/admin/signins`);
-    return adminShell(path, html`<p class="muted small">Every sign-in request: whether the email was delivered and whether the person verified it.</p>${signInsTable(rows)}`);
+    return adminShell(path, html`<p class="muted small">${t("admin.signinsHelp")}</p>${signInsTable(rows)}`);
   }
   if (path === "/admin/audit") {
     const params = new URLSearchParams(location.search);
@@ -1231,14 +1229,14 @@ async function renderAdmin(path) {
     adminShell(
       path,
       html`<form class="filters" id="audit-filters">
-          <label>Action <select name="action"><option value="">All</option>
+          <label>${t("admin.action")} <select name="action"><option value="">${t("admin.all")}</option>
             ${["auth", "user", "group", "member", "invite", "expense"].map((p) => html`<option value="${p}." ${filters.action === `${p}.` ? raw("selected") : ""}>${p}</option>`)}
           </select></label>
-          <label>User <input name="actor" value="${filters.actor}" placeholder="email" /></label>
-          <button class="btn small">Filter</button>
+          <label>${t("admin.user")} <input name="actor" value="${filters.actor}" placeholder="${t("admin.userPlaceholder")}" /></label>
+          <button class="btn small">${t("admin.filter")}</button>
         </form>
         <div id="audit-rows">${auditTable(first.entries)}</div>
-        <div class="actions center">${first.next ? html`<button class="btn" id="more">Load more</button>` : ""}</div>`,
+        <div class="actions center">${first.next ? html`<button class="btn" id="more">${t("admin.loadMore")}</button>` : ""}</div>`,
     );
     const form = $("#audit-filters");
     form.onsubmit = (e) => {
@@ -1261,7 +1259,7 @@ async function renderAdmin(path) {
         });
     return;
   }
-  showError(Object.assign(new Error("This page doesn't exist."), { status: 404 }));
+  showError(Object.assign(new Error(t("error.noPage")), { status: 404 }));
 }
 
 // ---------- router ----------
@@ -1272,8 +1270,8 @@ function showError(err) {
   if (location.pathname.startsWith("/admin") && (err instanceof TypeError || err.status === 403)) {
     render(
       app,
-      html`<div class="card narrow center"><h2>Confirm it's you</h2><p class="muted">The admin area needs a Cloudflare Access sign-in.</p>
-        <button class="btn primary" id="access-login">Continue</button></div>`,
+      html`<div class="card narrow center"><h2>${t("admin.confirmTitle")}</h2><p class="muted">${t("admin.confirmHelp")}</p>
+        <button class="btn primary" id="access-login">${t("action.continue")}</button></div>`,
     );
     $("#access-login").onclick = () => location.assign(location.pathname + location.search);
     return;
@@ -1283,13 +1281,16 @@ function showError(err) {
     renderAccount();
     return renderHomeSignedOut();
   }
-  render(app, html`<div class="card empty"><h2>${err.status === 404 ? "Not found" : "Something went wrong"}</h2><p>${err.message}</p><a class="btn" href="/" data-link>Go to your groups</a></div>`);
+  render(app, html`<div class="card empty"><h2>${t(err.status === 404 ? "error.notFound" : "error.generic")}</h2><p>${err.message}</p><a class="btn" href="/" data-link>${t("nav.toGroups")}</a></div>`);
 }
 
-async function route() {
+/** `refresh` re-renders the current page in place (e.g. after switching language). */
+async function route({ refresh = false } = {}) {
   const path = location.pathname;
-  window.scrollTo(0, 0);
-  render(app, html`<div class="spinner" aria-label="Loading"></div>`);
+  if (!refresh) {
+    window.scrollTo(0, 0);
+    render(app, html`<div class="spinner" aria-label="${t("loading")}"></div>`);
+  }
   try {
     let m;
     if (path === "/signin") return renderLinkSignIn();
@@ -1301,13 +1302,14 @@ async function route() {
     if (path === "/new") return renderNewGroup();
     if ((m = /^\/g\/([\w-]+)$/.exec(path))) return await renderGroup(m[1]);
     if (path.startsWith("/admin")) return await renderAdmin(path);
-    showError(Object.assign(new Error("This page doesn't exist."), { status: 404 }));
+    showError(Object.assign(new Error(t("error.noPage")), { status: 404 }));
   } catch (err) {
     showError(err);
   }
 }
 
 (async () => {
+  document.documentElement.lang = getLanguage();
   try {
     const res = await api("/me");
     me = res.user;

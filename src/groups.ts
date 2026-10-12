@@ -1,6 +1,7 @@
 import { audit } from "./audit";
 import type { User } from "./auth";
 import { HttpError, now, optionalText, randomId, readJson, text } from "./http";
+import { requestLang, tr } from "./i18n";
 import { activeGroupLink, insertGroupLink } from "./invites";
 import { balances, settle } from "./split";
 
@@ -150,10 +151,10 @@ export async function createGroup(request: Request, env: Env, user: User): Promi
   const others = Array.isArray(body.members) ? body.members.map((n) => text(n, "Name", { max: 60 })) : [];
   const names = new Set([myName.toLowerCase()]);
   for (const n of others) {
-    if (names.has(n.toLowerCase())) throw new HttpError(400, `"${n}" is listed twice`);
+    if (names.has(n.toLowerCase())) throw new HttpError(400, '"{name}" is listed twice', { name: n });
     names.add(n.toLowerCase());
   }
-  if (others.length >= MAX_MEMBERS) throw new HttpError(400, `A group can have at most ${MAX_MEMBERS} people`);
+  if (others.length >= MAX_MEMBERS) throw new HttpError(400, "A group can have at most {max} people", { max: MAX_MEMBERS });
 
   const id = randomId();
   const t = now();
@@ -229,14 +230,14 @@ async function assertUniqueName(env: Env, groupId: string, name: string, exceptI
   )
     .bind(groupId, name, exceptId ?? "")
     .first();
-  if (clash) throw new HttpError(400, `There is already someone called "${name}" in this group`);
+  if (clash) throw new HttpError(400, 'There is already someone called "{name}" in this group', { name });
 }
 
 /** Inserts a participant; used by "add person" and by joining through an open invite. */
 export async function insertMember(env: Env, groupId: string, name: string, userId: string | null): Promise<string> {
   await assertUniqueName(env, groupId, name);
   const count = await env.DB.prepare("SELECT COUNT(*) AS n FROM members WHERE group_id = ?").bind(groupId).first<{ n: number }>();
-  if ((count?.n ?? 0) >= MAX_MEMBERS) throw new HttpError(400, `A group can have at most ${MAX_MEMBERS} people`);
+  if ((count?.n ?? 0) >= MAX_MEMBERS) throw new HttpError(400, "A group can have at most {max} people", { max: MAX_MEMBERS });
   const id = randomId();
   await env.DB.prepare("INSERT INTO members (id, group_id, name, user_id, created_at) VALUES (?, ?, ?, ?, ?)")
     .bind(id, groupId, name, userId, now())
@@ -275,7 +276,7 @@ export async function removeMember(request: Request, env: Env, user: User, group
   )
     .bind(memberId)
     .first();
-  if (used) throw new HttpError(400, `${member.name} is in some expenses. Remove them from those expenses first.`);
+  if (used) throw new HttpError(400, "{name} is in some expenses. Remove them from those expenses first.", { name: member.name });
   await env.DB.batch([
     env.DB.prepare("UPDATE invites SET revoked_at = ? WHERE member_id = ? AND used_at IS NULL AND revoked_at IS NULL").bind(now(), memberId),
     env.DB.prepare("UPDATE invites SET member_id = NULL WHERE member_id = ?").bind(memberId),
@@ -285,7 +286,8 @@ export async function removeMember(request: Request, env: Env, user: User, group
   return new Response(null, { status: 204 });
 }
 
-export async function exportCsv(env: Env, user: User, groupId: string): Promise<Response> {
+export async function exportCsv(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
+  const lang = requestLang(request);
   const { group } = await groupForUser(env, groupId, user);
   const [memberRows, expenses] = await Promise.all([members(env, groupId), expensesWithShares(env, groupId)]);
   const names = new Map(memberRows.map((m) => [m.id, m.name]));
@@ -294,15 +296,20 @@ export async function exportCsv(env: Env, user: User, groupId: string): Promise<
     return /[",\n]|^[=+\-@]/.test(s) ? `"${s.replace(/^([=+\-@])/, "'$1").replace(/"/g, '""')}"` : s;
   };
   const fmt = (c: number) => (c / 100).toFixed(2);
-  const header = ["Date", "Title", "Type", "Category", `Amount (${group.currency})`, "Paid by", ...memberRows.map((m) => m.name)];
+  const header = [
+    ...["Date", "Title", "Type", "Category"].map((h) => tr(lang, h)),
+    tr(lang, "Amount ({currency})", { currency: group.currency }),
+    tr(lang, "Paid by"),
+    ...memberRows.map((m) => m.name),
+  ];
   const lines = [header.map(cell).join(",")];
   for (const e of [...expenses].reverse()) {
     lines.push(
       [
         e.date,
-        e.title,
-        e.kind,
-        e.category,
+        e.kind === "transfer" && e.title === "Payment" ? tr(lang, e.title) : e.title,
+        tr(lang, e.kind),
+        e.category && tr(lang, e.category),
         fmt(e.amount),
         names.get(e.paidBy) ?? "",
         ...memberRows.map((m) => fmt(e.shares.find((s) => s.memberId === m.id)?.amount ?? 0)),

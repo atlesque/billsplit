@@ -1,5 +1,6 @@
 import { verifyAccess } from "./access";
 import { audit } from "./audit";
+import { requestLang, tr, type Lang } from "./i18n";
 import { HttpError, maskPath, now, randomId, readJson, sha256, text } from "./http";
 
 const SESSION_COOKIE = "bs_session";
@@ -95,6 +96,7 @@ export async function startLogin(request: Request, env: Env): Promise<Response> 
     .run();
 
   const link = `${env.APP_URL}/signin?token=${linkToken}`;
+  const lang = requestLang(request);
   // The email log never stores the code itself.
   const logEmail = (status: "sent" | "failed", extra: { error?: string; messageId?: string } = {}) =>
     env.DB.prepare(
@@ -108,9 +110,9 @@ export async function startLogin(request: Request, env: Env): Promise<Response> 
     const result = await env.EMAIL.send({
       to: email,
       from: { email: env.EMAIL_FROM, name: "BillSplit" },
-      subject: `Sign in to BillSplit (code ${code})`,
-      text: `Sign in to BillSplit with this link:\n${link}\n\nOr enter this code: ${code}\n\nThe link and code expire in 15 minutes and work once. If you didn't ask for this, ignore this email.`,
-      html: loginEmailHtml(code, link),
+      subject: tr(lang, "Sign in to BillSplit (code {code})", { code }),
+      text: `${tr(lang, "Sign in to BillSplit with this link:")}\n${link}\n\n${tr(lang, "Or enter this code:")} ${code}\n\n${tr(lang, "The link and code expire in 15 minutes and work once. If you didn't ask for this, ignore this email.")}`,
+      html: loginEmailHtml(code, link, lang),
     });
     await logEmail("sent", { messageId: result?.messageId });
     await audit(env, request, null, "auth.email_sent", { target: id, details: { email, next: maskPath(next) } });
@@ -124,15 +126,15 @@ export async function startLogin(request: Request, env: Env): Promise<Response> 
   return Response.json({ requestId: id, email });
 }
 
-function loginEmailHtml(code: string, link: string): string {
-  return `<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1d2433">
+function loginEmailHtml(code: string, link: string, lang: Lang): string {
+  return `<!doctype html><html lang="${lang}"><body style="margin:0;background:#f4f5f7;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#1d2433">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:440px;background:#fff;border-radius:14px;padding:32px">
 <tr><td style="font-size:20px;font-weight:700;padding-bottom:8px">BillSplit</td></tr>
-<tr><td style="padding:8px 0 24px"><a href="${link}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">Sign in to BillSplit</a></td></tr>
-<tr><td style="font-size:14px;line-height:1.5;padding-bottom:6px">Or enter this code:</td></tr>
+<tr><td style="padding:8px 0 24px"><a href="${link}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px">${tr(lang, "Sign in to BillSplit")}</a></td></tr>
+<tr><td style="font-size:14px;line-height:1.5;padding-bottom:6px">${tr(lang, "Or enter this code:")}</td></tr>
 <tr><td style="font-size:30px;font-weight:700;letter-spacing:8px;padding-bottom:24px;font-family:Menlo,Consolas,monospace">${code}</td></tr>
-<tr><td style="font-size:13px;color:#667085;line-height:1.5">The link and code expire in 15 minutes and work once. If you didn't ask for this, ignore this email.</td></tr>
+<tr><td style="font-size:13px;color:#667085;line-height:1.5">${tr(lang, "The link and code expire in 15 minutes and work once. If you didn't ask for this, ignore this email.")}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
@@ -184,7 +186,8 @@ export async function verifyCode(request: Request, env: Env): Promise<Response> 
     await env.DB.prepare("UPDATE login_requests SET attempts = attempts + 1 WHERE id = ?").bind(row.id).run();
     await audit(env, request, null, "auth.code_wrong", { target: row.id, details: { email: row.email, attempt: row.attempts + 1 } });
     const left = MAX_ATTEMPTS - row.attempts - 1;
-    throw new HttpError(400, left > 0 ? `Wrong code. ${left} attempt${left === 1 ? "" : "s"} left.` : "Too many wrong codes. Request a new one.");
+    if (left <= 0) throw new HttpError(400, "Too many wrong codes. Request a new one.");
+    throw new HttpError(400, left === 1 ? "Wrong code. 1 attempt left." : "Wrong code. {left} attempts left.", { left });
   }
   return completeLogin(request, env, row, "code");
 }
