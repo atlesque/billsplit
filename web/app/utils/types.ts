@@ -1,0 +1,100 @@
+// Shapes returned by the Worker API (src/).
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+}
+
+export interface GroupSummary {
+  id: string;
+  name: string;
+  currency: string;
+  member_count: number;
+  total: number;
+  my_balance: number;
+}
+
+export interface Group {
+  id: string;
+  name: string;
+  currency: string;
+  description: string;
+  isOwner: boolean;
+  shareToken: string | null;
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  isMe: boolean;
+  isOwner: boolean;
+  claimed: boolean;
+  email: string | null;
+  balance: number;
+  paid: number;
+  spent: number;
+}
+
+export interface Share {
+  memberId: string;
+  weight: number;
+  amount?: number;
+}
+
+export type SplitMode = "equal" | "shares" | "amounts";
+
+export interface Expense {
+  id?: string;
+  kind: "expense" | "transfer";
+  title: string;
+  amount: number;
+  date: string;
+  paidBy: string;
+  category?: string;
+  splitMode: SplitMode;
+  shares: Share[];
+}
+
+export interface Settlement {
+  from: string;
+  to: string;
+  amount: number;
+}
+
+export interface GroupData {
+  group: Group;
+  members: Member[];
+  expenses: Expense[];
+  settlements: Settlement[];
+  meId: string;
+}
+
+export interface AuditEntry {
+  id: string;
+  at: number;
+  action: string;
+  actor_id: string | null;
+  actor_email: string | null;
+  group_id: string | null;
+  group_name: string | null;
+  details: string | null;
+  ip: string | null;
+}
+
+export interface SignInRow {
+  id: string;
+  created_at: number;
+  email: string;
+  user_id: string | null;
+  registered: number | boolean;
+  status: string;
+  used_at: number | null;
+  email_status: string | null;
+  email_error: string | null;
+  attempts: number;
+  next_path: string;
+}
+
+/** Admin API rows are shown as they come. */
+export type AdminRow = Record<string, any>;

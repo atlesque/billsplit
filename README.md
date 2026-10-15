@@ -25,7 +25,7 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 ## Stack
 
 - One Cloudflare Worker (`src/`) serving a JSON API under `/api/*`, with no runtime dependencies.
-- A static, dependency-free SPA in `public/`, served by Workers Static Assets.
+- A **Nuxt 4** single-page app with **Nuxt UI** in `web/` (translations via `@nuxtjs/i18n` in `web/i18n/locales/`). It is client-rendered: `pnpm build` (`nuxt generate`) writes static files to `web/.output/public`, which Workers Static Assets serves, falling back to `index.html` for app routes.
 - **D1** for users, sessions, groups, people, invites, expenses, the email log and the audit log (`migrations/`).
 - **Cloudflare Email Service** (`send_email` binding) for sign-in emails.
 - A daily cron trigger removes expired sessions and sign-in requests older than 90 days.
@@ -43,14 +43,17 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 ```bash
 pnpm install
 pnpm db:migrate:local
-pnpm dev
+pnpm dev          # builds the front end, then runs the Worker on http://localhost:8787
 ```
+
+For front-end work with hot reload, run `pnpm exec wrangler dev` in one terminal and `pnpm dev:web` in another, then open http://localhost:3000. Nuxt sends `/api` to the Worker on port 8787.
 
 In local dev, the email binding doesn't send mail. Wrangler prints each sign-in email (including the code) to the terminal.
 
 ```bash
 pnpm test        # split, settle-up and invite-status logic
-pnpm typecheck
+pnpm typecheck   # Worker (tsc) and front end (vue-tsc)
+pnpm build       # front end into web/.output/public
 ```
 
 ## Deploying your own
@@ -59,7 +62,7 @@ pnpm typecheck
 2. Onboard your sending domain to Cloudflare Email Sending (`pnpm exec wrangler email sending enable example.com`).
 3. In `wrangler.jsonc`, set the `routes` pattern, `APP_URL`, `EMAIL_FROM` (an address on that domain), and `ADMIN_EMAILS`.
 4. Create a Cloudflare Access self-hosted application with destinations `<host>/admin` and `<host>/api/admin`, then set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` (the application's AUD tag). For local dev, `.dev.vars` can set `DEV_DISABLE_ACCESS=true` while `ACCESS_AUD` is empty.
-5. `pnpm run deploy` applies the D1 migrations and deploys the Worker.
+5. `pnpm run deploy` builds the front end, applies the D1 migrations and deploys the Worker.
 
 ## License
 

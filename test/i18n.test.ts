@@ -1,30 +1,32 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-// @ts-ignore: plain JS module served to the browser
-import { DICTIONARIES, matchLanguage, t } from "../public/i18n.js";
 import { HttpError } from "../src/http.ts";
 import { dictionary, requestLang, tr } from "../src/i18n.ts";
+import en from "../web/i18n/locales/en.json" with { type: "json" };
+import nl from "../web/i18n/locales/nl.json" with { type: "json" };
 
 const placeholders = (value: unknown) =>
   [...JSON.stringify(value).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(",");
 
-test("front end: Dutch has every English key with the same placeholders", () => {
-  const { en, nl } = DICTIONARIES as Record<string, Record<string, unknown>>;
-  assert.deepEqual(Object.keys(nl).sort(), Object.keys(en).sort());
-  for (const key of Object.keys(en)) assert.equal(placeholders(nl[key]), placeholders(en[key]), key);
+/** { a: { b: "x" } } -> { "a.b": "x" } */
+const flatten = (obj: object, prefix = ""): Record<string, string> =>
+  Object.assign({}, ...Object.entries(obj).map(([k, v]) => (typeof v === "string" ? { [prefix + k]: v } : flatten(v, `${prefix}${k}.`))));
+
+test("front end: Dutch has every English key with the same placeholders and plural forms", () => {
+  const enFlat = flatten(en);
+  const nlFlat = flatten(nl);
+  assert.deepEqual(Object.keys(nlFlat).sort(), Object.keys(enFlat).sort());
+  for (const key of Object.keys(enFlat)) {
+    assert.equal(placeholders(nlFlat[key]), placeholders(enFlat[key]), key);
+    assert.equal(nlFlat[key].split(" | ").length, enFlat[key].split(" | ").length, key);
+  }
 });
 
-test("front end: fills placeholders and picks plural forms", () => {
-  assert.equal(t("expense.amount", { currency: "EUR" }, "nl"), "Bedrag (EUR)");
-  assert.equal(t("people", { count: 1 }, "en"), "1 person");
-  assert.equal(t("people", { count: 3 }, "nl"), "3 personen");
-  assert.equal(t("no.such.key", {}, "nl"), "no.such.key");
-});
-
-test("front end: matches browser languages by their base language", () => {
-  assert.equal(matchLanguage(["nl-BE", "en-US"]), "nl");
-  assert.equal(matchLanguage(["de-DE", "en-GB"]), "en");
-  assert.equal(matchLanguage(["fr"]), null);
+test("front end: messages avoid vue-i18n syntax characters", () => {
+  // @ starts a linked message and | separates plural forms (only used as " | ").
+  for (const [key, value] of Object.entries({ ...flatten(en), ...flatten(nl) })) {
+    assert.doesNotMatch(value.replaceAll(" | ", ""), /[@|$%<>]/, key);
+  }
 });
 
 test("server: Dutch translations keep the English placeholders", () => {
