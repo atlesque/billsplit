@@ -38,7 +38,17 @@
     <!-- While you're the only person in the group, the share link is the main call to action. -->
     <GroupLinkCard v-if="!shareButton && tab !== 'people'" :group="group" />
 
-    <UTabs v-model="tab" :items="tabs" :content="false" class="mb-4" :aria-label="$t('group.sections')" />
+    <!-- An underlined tab bar, so the tabs read as navigation and the only filled green is the Add expense button. -->
+    <UTabs
+      v-model="tab"
+      :items="tabs"
+      :content="false"
+      variant="link"
+      size="lg"
+      class="mb-5"
+      :ui="{ list: 'border-accented', trigger: 'grow pb-2.5', leadingIcon: 'hidden sm:inline-flex' }"
+      :aria-label="$t('group.sections')"
+    />
 
     <GroupExpensesTab v-if="tab === 'expenses'" :data="data" @add="openExpense(null)" @open="openExpense" />
     <GroupBalancesTab v-else-if="tab === 'balances'" :data="data" @settle="settle" />
@@ -51,6 +61,7 @@
 import { ExpenseModal, ShareModal } from "#components";
 
 const TABS = ["expenses", "balances", "people", "settings"] as const;
+const TAB_ICONS = { expenses: "i-lucide-receipt", balances: "i-lucide-scale", people: "i-lucide-users", settings: "i-lucide-settings" } as const;
 type Tab = (typeof TABS)[number];
 
 const route = useRoute();
@@ -74,7 +85,7 @@ const tab = computed<Tab>({
   get: () => (TABS.includes(route.query.tab as Tab) ? (route.query.tab as Tab) : "expenses"),
   set: (value) => router.push({ query: value === "expenses" ? {} : { tab: value } }),
 });
-const tabs = computed(() => TABS.map((key) => ({ label: t(`tab.${key}`), value: key })));
+const tabs = computed(() => TABS.map((key) => ({ label: t(`tab.${key}`), value: key, icon: TAB_ICONS[key] })));
 
 // Right after creating a group, show its share link.
 watch(data, (value) => {
