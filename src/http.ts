@@ -1,17 +1,14 @@
+/** An error shown to the user. `message` is English text with {placeholders} filled from `params`. */
 export class HttpError extends Error {
   readonly status: number;
-  constructor(status: number, message: string) {
-    super(message);
+  readonly template: string;
+  readonly params: Record<string, string | number>;
+  constructor(status: number, message: string, params: Record<string, string | number> = {}) {
+    super(message.replace(/\{(\w+)\}/g, (match, key: string) => (key in params ? String(params[key]) : match)));
     this.status = status;
+    this.template = message;
+    this.params = params;
   }
-}
-
-export function errorResponse(error: unknown): Response {
-  if (error instanceof HttpError) {
-    return Response.json({ error: error.message }, { status: error.status });
-  }
-  console.error(error);
-  return Response.json({ error: "Something went wrong" }, { status: 500 });
 }
 
 export async function readJson(request: Request): Promise<Record<string, unknown>> {
@@ -28,10 +25,10 @@ export async function readJson(request: Request): Promise<Record<string, unknown
 }
 
 export function text(value: unknown, field: string, { min = 1, max = 120 } = {}): string {
-  if (typeof value !== "string") throw new HttpError(400, `${field} is required`);
+  if (typeof value !== "string") throw new HttpError(400, "{field} is required", { field });
   const trimmed = value.trim().replace(/\s+/g, " ");
-  if (trimmed.length < min) throw new HttpError(400, `${field} is required`);
-  if (trimmed.length > max) throw new HttpError(400, `${field} is too long (max ${max} characters)`);
+  if (trimmed.length < min) throw new HttpError(400, "{field} is required", { field });
+  if (trimmed.length > max) throw new HttpError(400, "{field} is too long (max {max} characters)", { field, max });
   return trimmed;
 }
 
@@ -42,9 +39,9 @@ export function optionalText(value: unknown, field: string, max = 500): string {
 
 export function cents(value: unknown, field: string): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value <= 0) {
-    throw new HttpError(400, `${field} must be a positive amount`);
+    throw new HttpError(400, "{field} must be a positive amount", { field });
   }
-  if (value > 100_000_000_00) throw new HttpError(400, `${field} is too large`);
+  if (value > 100_000_000_00) throw new HttpError(400, "{field} is too large", { field });
   return value;
 }
 

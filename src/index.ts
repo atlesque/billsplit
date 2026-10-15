@@ -24,8 +24,20 @@ import {
   renameMember,
   updateGroup,
 } from "./groups";
-import { errorResponse, HttpError } from "./http";
+import { HttpError } from "./http";
+import { requestLang, tr, type Lang } from "./i18n";
 import { getInvite, getOrCreateGroupLink, joinInvite, resetGroupLink, revokeInvite } from "./invites";
+
+function errorResponse(error: unknown, lang: Lang): Response {
+  if (error instanceof HttpError) {
+    // Field names are English text too, so they are translated along with the message.
+    const params = { ...error.params };
+    if (typeof params.field === "string") params.field = tr(lang, params.field);
+    return Response.json({ error: tr(lang, error.template, params) }, { status: error.status });
+  }
+  console.error(error);
+  return Response.json({ error: tr(lang, "Something went wrong") }, { status: 500 });
+}
 
 async function route(request: Request, env: Env, url: URL): Promise<Response> {
   const { method } = request;
@@ -85,7 +97,7 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
       case "POST leave":
         return leaveGroup(request, env, user, groupId);
       case "GET export.csv":
-        return exportCsv(env, user, groupId);
+        return exportCsv(request, env, user, groupId);
       case "POST members":
         return addMember(request, env, user, groupId);
       case "PATCH members/:id":
@@ -119,7 +131,7 @@ export default {
       response.headers.set("Cache-Control", "no-store");
       return response;
     } catch (error) {
-      return errorResponse(error);
+      return errorResponse(error, requestLang(request));
     }
   },
 
