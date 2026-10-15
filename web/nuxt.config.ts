@@ -15,6 +15,13 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { name: "description", content: "Split group expenses with friends and see who owes whom." },
         { name: "theme-color", content: "#0f766e" },
+        // Link previews. og:url and the canonical link are per page, added by the Worker (src/page-meta.ts).
+        // There is no 1200x630 share image yet, so X shows the small "summary" card.
+        { property: "og:type", content: "website" },
+        { property: "og:site_name", content: "BillSplit" },
+        { property: "og:title", content: "BillSplit" },
+        { property: "og:description", content: "Split group expenses with friends and see who owes whom." },
+        { name: "twitter:card", content: "summary" },
       ],
       link: [
         { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },

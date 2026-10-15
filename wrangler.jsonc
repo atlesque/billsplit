@@ -18,11 +18,12 @@
     }
   ],
 
-  // The Worker runs first for /api/* only; everything else is the Nuxt SPA built by `pnpm build`.
+  // The Nuxt SPA built by `pnpm build`. The Worker runs first for /api/* and for pages, where it adds
+  // each page's canonical URL to the HTML; built JS and CSS under /_nuxt/ are served directly.
   "assets": {
     "directory": "./web/.output/public",
     "binding": "ASSETS",
-    "run_worker_first": ["/api/*"],
+    "run_worker_first": ["/*", "!/_nuxt/*"],
     "not_found_handling": "single-page-application"
   },
 
