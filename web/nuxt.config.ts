@@ -16,12 +16,17 @@ export default defineNuxtConfig({
         { name: "description", content: "Split group expenses with friends and see who owes whom." },
         { name: "theme-color", content: "#0f766e" },
         // Link previews. og:url and the canonical link are per page, added by the Worker (src/page-meta.ts).
-        // There is no 1200x630 share image yet, so X shows the small "summary" card.
+        // The share image is rendered from design/og-image.html (see the comment there).
         { property: "og:type", content: "website" },
         { property: "og:site_name", content: "BillSplit" },
         { property: "og:title", content: "BillSplit" },
         { property: "og:description", content: "Split group expenses with friends and see who owes whom." },
-        { name: "twitter:card", content: "summary" },
+        { property: "og:image", content: "https://billsplit.atlesque.dev/og-image.png" },
+        { property: "og:image:type", content: "image/png" },
+        { property: "og:image:width", content: "1200" },
+        { property: "og:image:height", content: "630" },
+        { property: "og:image:alt", content: "BillSplit: split group expenses with friends and see who owes whom." },
+        { name: "twitter:card", content: "summary_large_image" },
       ],
       link: [
         { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
