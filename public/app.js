@@ -99,6 +99,8 @@ const categoryLabel = (c) => (hasTranslation(`category.${c}`) ? t(`category.${c}
 // Payments are stored with the English title "Payment".
 const expenseTitle = (e) => (e.kind === "transfer" && e.title === "Payment" ? t("expense.payment") : e.title);
 const peopleCount = (count) => t("people", { count });
+// Feather-style "share" icon (three linked nodes); inherits the text colour.
+const SHARE_ICON = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>';
 const inviteUrl = (token) => `${location.origin}/join/${token}`;
 
 function navigate(path, { replace = false } = {}) {
@@ -470,9 +472,10 @@ async function renderGroup(groupId) {
   const mine = byId.get(meId);
   const others = members.filter((m) => !m.isMe);
 
-  // Until someone else has joined, the share link is the main call to action.
-  const joined = members.filter((m) => m.claimed).length;
-  const shareCard = joined < 2 && tab !== "people" ? groupLinkCard(group, { compact: false }) : "";
+  // While you're the only person in the group, the share link is the main call to action.
+  // From two people on it moves to a share button next to the group name.
+  const shareButton = members.length >= 2;
+  const shareCard = !shareButton && tab !== "people" ? groupLinkCard(group, { compact: false }) : "";
 
   let body;
   if (tab === "expenses") body = expensesTab(data, name);
@@ -485,6 +488,7 @@ async function renderGroup(groupId) {
     html`<a href="/" data-link class="small back">${t("nav.backToGroups")}</a>
       <div class="page-head">
         <div><h1>${group.name}</h1><p class="muted small">${peopleCount(members.length)} · ${cur}${group.description ? ` · ${group.description}` : ""}</p></div>
+        ${shareButton ? html`<button class="btn icon" id="share-group" title="${t("group.share")}" aria-label="${t("group.share")}">${raw(SHARE_ICON)}</button>` : ""}
       </div>
       <div class="stats">
         <div class="stat"><div class="label">${t("group.totalSpent")}</div><div class="value">${money(total, cur)}</div></div>
@@ -494,8 +498,7 @@ async function renderGroup(groupId) {
       <nav class="segmented" aria-label="${t("group.sections")}">
         ${TABS.map((key) => html`<a href="/g/${group.id}?tab=${key}" data-link aria-current="${tab === key ? "page" : "false"}">${t(`tab.${key}`)}</a>`)}
       </nav>
-      ${body}
-      ${tab === "expenses" || tab === "balances" ? html`<button class="btn primary fab" data-add-expense>${t("group.addExpense")}</button>` : ""}`,
+      ${body}`,
   );
 
   const refresh = () => renderGroup(groupId).catch(showError);
@@ -509,6 +512,8 @@ async function renderGroup(groupId) {
       }),
   );
   bindGroupLink(group, refresh);
+  const shareBtn = $("#share-group");
+  if (shareBtn) shareBtn.onclick = () => showShareDialog(group, { title: t("link.inviteTitle", { name: group.name }) });
   if (new URLSearchParams(location.search).get("share") === "1") {
     history.replaceState(null, "", `/g/${group.id}`);
     showShareDialog(group);
@@ -524,7 +529,8 @@ function expensesTab({ expenses, meId, group }, name) {
   }
   const byDate = new Map();
   for (const e of expenses) byDate.set(e.date, [...(byDate.get(e.date) ?? []), e]);
-  return html`${[...byDate].map(
+  return html`<div class="list-toolbar"><button class="btn primary" data-add-expense>${t("group.addExpense")}</button></div>
+    ${[...byDate].map(
     ([date, list]) => html`<div class="date-head">${formatDate(date)}</div>
       <ul class="list">
         ${list.map((e) => {
@@ -631,11 +637,12 @@ function bindGroupLink(group, refresh) {
   );
 }
 
-function showShareDialog(group) {
+/** Share link in a modal: right after creating a group, and from the share button. */
+function showShareDialog(group, { title = t("share.created") } = {}) {
   const url = groupLinkUrl(group);
   openDialog(
     html`<div class="sheet">
-      <div class="sheet-head"><h2>${t("share.created")}</h2><button type="button" class="btn ghost small" data-close>${t("action.done")}</button></div>
+      <div class="sheet-head"><h2>${title}</h2><button type="button" class="btn ghost small" data-close>${t("action.done")}</button></div>
       <p>${th("share.help", { name: group.name })}</p>
       <div class="field"><label for="share-link" class="visually-hidden">${t("link.groupLink")}</label><input id="share-link" readonly value="${url}" /></div>
       <div class="actions">
@@ -742,11 +749,11 @@ function settingsTab({ group }) {
   const cur = group.currency;
   return html`<form class="card" id="group-form">
       <h2>${t("settings.details")}</h2>
-      <div class="field"><label for="gs-name">${t("field.name")}</label><input id="gs-name" name="name" value="${group.name}" maxlength="80" required /></div>
       <div class="grid2">
+        <div class="field"><label for="gs-name">${t("field.name")}</label><input id="gs-name" name="name" value="${group.name}" maxlength="80" required /></div>
         <div class="field"><label for="gs-cur">${t("field.currency")}</label><select id="gs-cur" name="currency">${[...new Set([cur, ...CURRENCIES])].map((c) => html`<option ${c === cur ? raw("selected") : ""}>${c}</option>`)}</select></div>
-        <div class="field"><label for="gs-desc">${t("field.description")}</label><input id="gs-desc" name="description" value="${group.description}" maxlength="300" /></div>
       </div>
+      <div class="field"><label for="gs-desc">${t("field.description")}</label><textarea id="gs-desc" name="description" rows="2" maxlength="300">${group.description}</textarea></div>
       <p class="error"></p>
       <button class="btn primary">${t("action.save")}</button>
     </form>

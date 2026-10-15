@@ -100,6 +100,7 @@ const en = {
   "group.sections": "Group sections",
   "group.totalSpent": "Total spent",
   "group.addExpense": "+ Add expense",
+  "group.share": "Share group link",
 
   "expenses.empty": "No expenses yet.",
   "expenses.addFirst": "Add the first expense",
@@ -406,6 +407,7 @@ const nl = {
   "group.sections": "Groepsonderdelen",
   "group.totalSpent": "Totaal uitgegeven",
   "group.addExpense": "+ Uitgave toevoegen",
+  "group.share": "Groepslink delen",
 
   "expenses.empty": "Nog geen uitgaven.",
   "expenses.addFirst": "Voeg de eerste uitgave toe",
