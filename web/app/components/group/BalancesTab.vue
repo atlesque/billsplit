@@ -7,10 +7,10 @@
           <span class="w-1/3 min-w-0 truncate font-semibold text-highlighted">{{ m.isMe ? $t("nameYou", { name: m.name }) : m.name }}</span>
           <span class="grid h-6 flex-1 grid-cols-2" aria-hidden="true">
             <span class="relative border-e border-default">
-              <span v-if="m.balance < 0" class="absolute inset-y-0.5 end-0 rounded bg-orange-500/80" :style="{ width: `${(Math.abs(m.balance) / max) * 100}%` }" />
+              <span v-if="m.balance < 0" class="absolute inset-y-0.5 end-0 rounded bg-error" :style="{ width: `${(Math.abs(m.balance) / max) * 100}%` }" />
             </span>
             <span class="relative">
-              <span v-if="m.balance > 0" class="absolute inset-y-0.5 start-0 rounded bg-emerald-500/80" :style="{ width: `${(m.balance / max) * 100}%` }" />
+              <span v-if="m.balance > 0" class="absolute inset-y-0.5 start-0 rounded bg-primary" :style="{ width: `${(m.balance / max) * 100}%` }" />
             </span>
           </span>
           <span class="w-28 text-end font-semibold whitespace-nowrap tabular-nums" :class="tone(m.balance)">{{ m.balance > 0 ? "+" : "" }}{{ money(m.balance, cur) }}</span>

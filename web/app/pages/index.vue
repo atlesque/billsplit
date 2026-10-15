@@ -20,7 +20,7 @@
       <ul class="divide-y divide-default">
         <li v-for="g in groups" :key="g.id">
           <NuxtLink :to="`/g/${g.id}`" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-elevated/60">
-            <UAvatar :text="initials(g.name)" size="lg" :ui="{ root: 'bg-primary/10', fallback: 'text-primary font-bold' }" />
+            <UAvatar :text="initials(g.name)" size="lg" :ui="{ root: 'bg-elevated', fallback: 'text-primary font-bold' }" />
             <span class="min-w-0 flex-1">
               <span class="block truncate font-semibold text-highlighted">{{ g.name }}</span>
               <span class="block text-sm text-muted">{{ peopleCount(g.member_count) }} · {{ $t("groups.spent", { amount: money(g.total, g.currency) }) }}</span>

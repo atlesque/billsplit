@@ -10,7 +10,7 @@
     <template #footer>
       <div class="flex w-full flex-wrap gap-2">
         <UButton type="submit" form="member-form" :label="$t('action.save')" :loading="busy" />
-        <UButton v-if="!member.isMe" color="error" variant="soft" :label="$t('people.remove')" @click="remove" />
+        <UButton v-if="!member.isMe" color="error" variant="outline" :label="$t('people.remove')" @click="remove" />
         <UButton class="ms-auto" color="neutral" variant="ghost" :label="$t('action.cancel')" @click="emit('close', false)" />
       </div>
     </template>

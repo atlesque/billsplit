@@ -1,5 +1,5 @@
 <template>
-  <UCard class="mb-4 ring-primary/40" :class="{ 'ring-2': !compact }">
+  <UCard class="mb-4 ring-primary" :class="{ 'ring-2': !compact }">
     <h2 class="text-lg font-semibold text-highlighted">{{ $t("link.inviteTitle", { name: group.name }) }}</h2>
     <p class="mt-1 mb-3 text-sm text-muted">{{ $t("link.inviteHelp") }}</p>
     <div class="flex flex-wrap gap-2">

@@ -4,9 +4,8 @@
     <UButton icon="i-lucide-plus" :label="$t('expenses.addFirst')" @click="emit('add')" />
   </UCard>
   <div v-else>
-    <div class="mb-1 flex justify-end">
-      <UButton icon="i-lucide-plus" :label="$t('group.addExpense')" @click="emit('add')" />
-    </div>
+    <!-- Full width and left-aligned, so it reads in line with the tabs and the list below. -->
+    <UButton block size="lg" icon="i-lucide-plus" class="justify-start" :label="$t('group.addExpense')" @click="emit('add')" />
     <template v-for="[date, list] in byDate" :key="date">
       <div class="px-1 pt-4 pb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">{{ formatDate(date) }}</div>
       <UCard :ui="{ body: 'p-0 sm:p-0' }">
@@ -19,7 +18,7 @@
                 size="lg"
                 :ui="{ root: 'bg-elevated', icon: 'text-muted' }"
               />
-              <UAvatar v-else :text="initials(e.title)" size="lg" :ui="{ root: 'bg-primary/10', fallback: 'text-primary font-bold' }" />
+              <UAvatar v-else :text="initials(e.title)" size="lg" :ui="{ root: 'bg-elevated', fallback: 'text-primary font-bold' }" />
               <span class="min-w-0 flex-1">
                 <span class="block truncate font-semibold text-highlighted">{{ expenseTitle(e) }}</span>
                 <span class="block truncate text-sm text-muted">{{ subtitle(e) }}</span>

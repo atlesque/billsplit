@@ -7,7 +7,7 @@
         </UFormField>
         <div class="flex flex-wrap gap-2">
           <UButton type="submit" :label="$t('action.save')" :loading="busy" />
-          <UButton color="error" variant="soft" :label="$t('account.signOut')" @click="logout" />
+          <UButton color="error" variant="outline" :label="$t('account.signOut')" @click="logout" />
         </div>
       </UForm>
     </template>

@@ -69,7 +69,7 @@
     <template #footer>
       <div class="flex w-full flex-wrap gap-2">
         <UButton type="submit" form="expense-form" class="flex-1 justify-center" :label="$t(isEdit ? 'action.save' : 'action.add')" :loading="busy" />
-        <UButton v-if="isEdit" color="error" variant="soft" :label="$t('action.delete')" @click="remove" />
+        <UButton v-if="isEdit" color="error" variant="outline" :label="$t('action.delete')" @click="remove" />
         <UButton color="neutral" variant="ghost" :label="$t('action.cancel')" @click="emit('close', false)" />
       </div>
     </template>

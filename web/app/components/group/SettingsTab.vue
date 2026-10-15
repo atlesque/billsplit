@@ -30,8 +30,8 @@
       <h2 class="text-lg font-semibold text-highlighted">{{ $t("settings.leaveOrDelete") }}</h2>
       <p class="mt-1 mb-3 text-sm text-muted">{{ $t("settings.leaveHelp") }} {{ group.isOwner ? $t("settings.deleteHelp") : "" }}</p>
       <div class="flex flex-wrap gap-2">
-        <UButton color="error" variant="soft" icon="i-lucide-log-out" :label="$t('settings.leave')" @click="leave" />
-        <UButton v-if="group.isOwner" color="error" variant="soft" icon="i-lucide-trash-2" :label="$t('settings.delete')" @click="remove" />
+        <UButton color="error" variant="outline" icon="i-lucide-log-out" :label="$t('settings.leave')" @click="leave" />
+        <UButton v-if="group.isOwner" color="error" variant="outline" icon="i-lucide-trash-2" :label="$t('settings.delete')" @click="remove" />
       </div>
     </UCard>
   </div>
