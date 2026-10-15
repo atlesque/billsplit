@@ -27,6 +27,7 @@ import {
 import { HttpError } from "./http";
 import { requestLang, tr, type Lang } from "./i18n";
 import { getInvite, getOrCreateGroupLink, joinInvite, resetGroupLink, revokeInvite } from "./invites";
+import { withPageMeta } from "./page-meta";
 
 function errorResponse(error: unknown, lang: Lang): Response {
   if (error instanceof HttpError) {
@@ -125,7 +126,7 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
-    if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
+    if (!url.pathname.startsWith("/api/")) return withPageMeta(await env.ASSETS.fetch(request), env.APP_URL, url.pathname);
     try {
       const response = await route(request, env, url);
       response.headers.set("Cache-Control", "no-store");

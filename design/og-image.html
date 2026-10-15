@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Source of web/public/og-image.png, the 1200x630 link-preview image. To re-render:
+     chromium --headless --hide-scrollbars --window-size=1200,630 --screenshot=web/public/og-image.png design/og-image.html --><html><head><meta charset="utf-8"><style>
+*{margin:0;box-sizing:border-box}
+body{width:1200px;height:630px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#0f766e;color:#fff;position:relative;overflow:hidden}
+.glow{position:absolute;right:-180px;top:-200px;width:720px;height:720px;border-radius:50%;background:#115e59}
+.left{position:absolute;left:88px;top:0;bottom:0;width:560px;display:flex;flex-direction:column;justify-content:center}
+.brand{display:flex;align-items:center;gap:22px;margin-bottom:40px}
+.brand svg{width:88px;height:88px}
+.brand span{font-size:64px;font-weight:800;letter-spacing:-1.5px}
+h1{font-size:54px;line-height:1.12;font-weight:800;letter-spacing:-1px}
+p{margin-top:24px;font-size:28px;line-height:1.4;color:#ccfbf1}
+.card{position:absolute;right:88px;top:145px;width:400px;background:#fff;border-radius:24px;padding:30px 32px;color:#0f172a;box-shadow:0 24px 60px rgba(4,47,46,.35)}
+.card h2{font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0f766e;margin-bottom:18px}
+.row{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-top:1px solid #e2e8f0;font-size:22px}
+.row:first-of-type{border-top:0}
+.row b{font-weight:700}
+.muted{color:#64748b;font-size:17px;display:block;margin-top:2px}
+.pos{color:#0f766e;font-weight:700}.neg{color:#c2410c;font-weight:700}
+</style></head><body>
+<div class="glow"></div>
+<div class="left">
+  <div class="brand"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#fff"/><path d="M18 20h28v30l-4.7-3-4.6 3-4.7-3-4.7 3-4.6-3L18 50z" fill="#0f766e"/><path d="M24 29h16M24 36h10" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/></svg><span>BillSplit</span></div>
+  <h1>Split group expenses with friends</h1>
+  <p>and see who owes whom.</p>
+</div>
+<div class="card">
+  <h2>Balances</h2>
+  <div class="row"><div><b>You</b><span class="muted">gets back</span></div><span class="pos">+ €42.50</span></div>
+  <div class="row"><div><b>Sam</b><span class="muted">owes</span></div><span class="neg">− €18.00</span></div>
+  <div class="row"><div><b>Robin</b><span class="muted">owes</span></div><span class="neg">− €24.50</span></div>
+</div>
+</body></html>
