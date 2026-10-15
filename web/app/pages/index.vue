@@ -1,0 +1,46 @@
+<template>
+  <PageSpinner v-if="pending" />
+  <ErrorState v-else-if="error" :error="error" />
+  <UCard v-else-if="!groups?.length" class="mx-auto max-w-md">
+    <h1 class="mb-3 text-2xl font-bold text-highlighted">{{ $t("groups.firstTitle") }}</h1>
+    <ol class="mb-5 list-decimal space-y-1.5 ps-5">
+      <li>{{ $t("groups.step1") }}</li>
+      <li>{{ $t("groups.step2") }}</li>
+      <li>{{ $t("groups.step3") }}</li>
+    </ol>
+    <UButton to="/new" block size="lg" icon="i-lucide-plus" :label="$t('groups.create')" />
+    <p class="mt-4 text-sm text-muted">{{ $t("groups.gotLink") }}</p>
+  </UCard>
+  <div v-else>
+    <div class="mb-4 flex items-center justify-between gap-4">
+      <h1 class="text-2xl font-bold text-highlighted">{{ $t("nav.yourGroups") }}</h1>
+      <UButton to="/new" icon="i-lucide-plus" :label="$t('groups.new')" />
+    </div>
+    <UCard :ui="{ body: 'p-0 sm:p-0' }">
+      <ul class="divide-y divide-default">
+        <li v-for="g in groups" :key="g.id">
+          <NuxtLink :to="`/g/${g.id}`" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-elevated/60">
+            <UAvatar :text="initials(g.name)" size="lg" :ui="{ root: 'bg-primary/10', fallback: 'text-primary font-bold' }" />
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-semibold text-highlighted">{{ g.name }}</span>
+              <span class="block text-sm text-muted">{{ peopleCount(g.member_count) }} · {{ $t("groups.spent", { amount: money(g.total, g.currency) }) }}</span>
+            </span>
+            <span class="text-end text-sm font-semibold whitespace-nowrap tabular-nums" :class="tone(g.my_balance)">
+              {{
+                g.my_balance === 0
+                  ? $t("balance.settled")
+                  : $t(g.my_balance > 0 ? "balance.owedAmount" : "balance.oweAmount", { amount: money(Math.abs(g.my_balance), g.currency) })
+              }}
+            </span>
+          </NuxtLink>
+        </li>
+      </ul>
+    </UCard>
+  </div>
+</template>
+
+<script setup lang="ts">
+const api = useApi();
+const { money, peopleCount } = useFormat();
+const { data: groups, error, pending } = useLoad(() => api<GroupSummary[]>("/groups"));
+</script>

@@ -1,0 +1,30 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+
+@theme {
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+:root {
+  --ui-radius: 0.5rem;
+}
+
+body {
+  @apply bg-(--ui-bg-muted) min-h-dvh;
+}
+
+/* Money that is owed to you, and money you owe. */
+.pos {
+  @apply text-emerald-700 dark:text-emerald-400;
+}
+.neg {
+  @apply text-orange-700 dark:text-orange-400;
+}
+
+/* Darker teal than Nuxt UI's default 500 shade, for contrast with white text (the old #0f766e). */
+:root {
+  --ui-primary: var(--ui-color-primary-700);
+}
+.dark {
+  --ui-primary: var(--ui-color-primary-400);
+}
