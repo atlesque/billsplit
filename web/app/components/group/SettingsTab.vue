@@ -2,8 +2,8 @@
   <div class="space-y-4">
     <UCard>
       <h2 class="mb-3 text-lg font-semibold text-highlighted">{{ $t("settings.details") }}</h2>
-      <p v-if="!group.canManage" class="-mt-2 mb-3 text-sm text-muted">{{ $t("settings.ownerOnly") }}</p>
-      <UForm :state="state" :disabled="!group.canManage" class="space-y-4" @submit="save">
+      <!-- Only the owner (or an admin) gets fields; everyone else just sees the details. -->
+      <UForm v-if="group.canManage" :state="state" class="space-y-4" @submit="save">
         <!-- Name and currency share a row; they stack on phones. -->
         <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
           <UFormField :label="$t('field.name')" name="name">
@@ -17,8 +17,21 @@
           <UTextarea v-model="state.description" :rows="2" maxlength="300" autoresize class="w-full" />
         </UFormField>
         <p v-if="error" class="text-sm text-error">{{ error }}</p>
-        <UButton v-if="group.canManage" type="submit" :label="$t('action.save')" :loading="busy" />
+        <UButton type="submit" :label="$t('action.save')" :loading="busy" />
       </UForm>
+      <template v-else>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+          <dt class="text-muted">{{ $t("field.name") }}</dt>
+          <dd class="text-default">{{ group.name }}</dd>
+          <dt class="text-muted">{{ $t("field.currency") }}</dt>
+          <dd class="text-default">{{ group.currency }}</dd>
+          <template v-if="group.description">
+            <dt class="text-muted">{{ $t("field.description") }}</dt>
+            <dd class="whitespace-pre-line text-default">{{ group.description }}</dd>
+          </template>
+        </dl>
+        <p class="mt-3 text-sm text-muted">{{ $t("settings.ownerOnly") }}</p>
+      </template>
     </UCard>
 
     <UCard>
@@ -28,11 +41,11 @@
     </UCard>
 
     <UCard>
-      <h2 class="text-lg font-semibold text-highlighted">{{ $t("settings.leaveOrDelete") }}</h2>
-      <p class="mt-1 mb-3 text-sm text-muted">{{ $t("settings.leaveHelp") }} {{ group.isOwner ? $t("settings.deleteHelp") : "" }}</p>
+      <h2 class="text-lg font-semibold text-highlighted">{{ $t(group.canManage ? "settings.leaveOrDelete" : "settings.leave") }}</h2>
+      <p class="mt-1 mb-3 text-sm text-muted">{{ $t("settings.leaveHelp") }} {{ group.canManage ? $t("settings.deleteHelp") : "" }}</p>
       <div class="flex flex-wrap gap-2">
         <UButton color="error" variant="outline" icon="i-lucide-log-out" :label="$t('settings.leave')" @click="leave" />
-        <UButton v-if="group.isOwner" color="error" variant="outline" icon="i-lucide-trash-2" :label="$t('settings.delete')" @click="remove" />
+        <UButton v-if="group.canManage" color="error" variant="outline" icon="i-lucide-trash-2" :label="$t('settings.delete')" @click="remove" />
       </div>
     </UCard>
   </div>
