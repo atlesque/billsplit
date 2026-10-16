@@ -438,5 +438,19 @@
       "not_received": "Marked as not received yet",
       "failed": "Marked as failed"
     }
+  },
+  "person": {
+    "open": "Show expenses and payments for {name}",
+    "youTitle": "Your balance",
+    "toPay": "People to pay",
+    "toReceive": "Who pays you",
+    "noExpenses": "{name} isn't in any expenses yet.",
+    "noExpensesYou": "You're not in any expenses yet.",
+    "lent": "lent {amount}",
+    "owes": "owes {amount}",
+    "gave": "gave {amount}",
+    "received": "received {amount}",
+    "ctaOwe": "Pay what you owe",
+    "ctaOwed": "Settle what you're owed"
   }
 }
