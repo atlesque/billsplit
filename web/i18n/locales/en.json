@@ -396,7 +396,8 @@
     "description": "Description",
     "sent": "I've sent the money",
     "confirmNote": "{name} will be asked to confirm the money arrived. It counts toward balances once they do.",
-    "directNote": "{name} doesn't use BillSplit, so it counts right away."
+    "directNote": "{name} doesn't use BillSplit, so it counts right away.",
+    "howToScan": "How to scan"
   },
   "payments": {
     "title": "Payments in progress",

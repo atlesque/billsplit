@@ -396,7 +396,8 @@
     "description": "Mededeling",
     "sent": "Ik heb het geld verstuurd",
     "confirmNote": "{name} krijgt de vraag om te bevestigen dat het geld is aangekomen. Pas dan telt het mee in de saldi.",
-    "directNote": "{name} gebruikt BillSplit niet, dus het telt meteen mee."
+    "directNote": "{name} gebruikt BillSplit niet, dus het telt meteen mee.",
+    "howToScan": "Hoe scan je dit?"
   },
   "payments": {
     "title": "Lopende betalingen",

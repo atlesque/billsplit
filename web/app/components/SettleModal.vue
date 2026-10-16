@@ -16,12 +16,17 @@
       />
 
       <template v-if="bank">
-        <div v-if="euro" class="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div v-if="euro" class="mb-4 flex flex-col gap-2">
           <QrCode :value="qrPayload" :label="$t('settle.qrLabel')" class="w-52 shrink-0 ring-1 ring-default" />
-          <div>
-            <p class="font-semibold text-highlighted">{{ $t("settle.scan") }}</p>
-            <p class="text-sm text-muted">{{ $t("settle.scanHelp") }}</p>
-          </div>
+          <p class="font-semibold text-highlighted">
+            {{ $t("settle.scan") }}
+            <UPopover :content="{ side: 'top' }">
+              <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-info" class="align-middle" :aria-label="$t('settle.howToScan')" :title="$t('settle.howToScan')" />
+              <template #content>
+                <p class="max-w-64 p-3 text-sm">{{ $t("settle.scanHelp") }}</p>
+              </template>
+            </UPopover>
+          </p>
         </div>
 
         <dl class="divide-y divide-default rounded-lg ring-1 ring-default">
