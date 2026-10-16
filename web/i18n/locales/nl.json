@@ -140,7 +140,13 @@
     "totals": "Totalen",
     "paidShare": "betaald {paid} · aandeel {share}",
     "pay": "Betalen",
-    "markReceived": "Ontvangen"
+    "markReceived": "Ontvangen",
+    "getsBack": "krijgt nog",
+    "owes": "moet nog betalen",
+    "settled": "staat quitte",
+    "youGetBack": "je krijgt nog",
+    "youOwe": "je moet nog betalen",
+    "youSettled": "je staat quitte"
   },
   "share": {
     "created": "Groep aangemaakt",

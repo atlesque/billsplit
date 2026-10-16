@@ -14,7 +14,8 @@ export default defineNuxtConfig({
       meta: [
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { name: "description", content: "Split group expenses with friends and see who owes whom." },
-        { name: "theme-color", content: "#0f766e" },
+        { name: "theme-color", content: "#f6f7f9", media: "(prefers-color-scheme: light)" },
+        { name: "theme-color", content: "#0d131c", media: "(prefers-color-scheme: dark)" },
         // Link previews. og:url and the canonical link are per page, added by the Worker (src/page-meta.ts).
         // The share image is rendered from design/og-image.html (see the comment there).
         { property: "og:type", content: "website" },
@@ -31,11 +32,12 @@ export default defineNuxtConfig({
       link: [
         { rel: "icon", href: "/icon.svg", type: "image/svg+xml" },
         { rel: "manifest", href: "/manifest.webmanifest" },
+        { rel: "preload", href: "/fonts/plus-jakarta-sans-latin-wght-normal.woff2", as: "font", type: "font/woff2", crossorigin: "" },
       ],
     },
   },
 
-  // System fonts, and icons bundled into the build instead of fetched from the Iconify API.
+  // Self-hosted fonts (see assets/css/main.css), and icons bundled into the build instead of fetched from the Iconify API.
   ui: { fonts: false },
   icon: {
     provider: "none",
