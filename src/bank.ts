@@ -1,36 +1,30 @@
-// Bank details and the SEPA transfer QR code. Pure functions, shared by the API, the front end and the tests.
+// Bank details and the SEPA transfer QR code, shared by the API, the front end and the tests.
 
-/** IBAN length per country, for the countries in the SEPA scheme (EU, EEA and the other SEPA members). */
-export const SEPA_IBAN_LENGTHS: Record<string, number> = {
-  AD: 24, AL: 28, AT: 20, BE: 16, BG: 22, CH: 21, CY: 28, CZ: 24, DE: 22, DK: 18, EE: 20, ES: 24, FI: 18,
-  FR: 27, GB: 22, GI: 23, GR: 27, HR: 21, HU: 28, IE: 22, IS: 26, IT: 27, LI: 21, LT: 20, LU: 20, LV: 21,
-  MC: 27, MD: 24, ME: 22, MK: 19, MT: 31, NL: 18, NO: 15, PL: 28, PT: 25, RO: 24, RS: 22, SE: 24, SI: 19,
-  SK: 24, SM: 27, VA: 22,
-};
+import { friendlyFormatIBAN, isSEPACountry, isValidBIC, validateIBAN, ValidationErrorsIBAN } from "ibantools";
 
 /** Upper case without spaces, the way IBANs and BICs are stored. */
 export const compact = (value: string) => value.replace(/[\s-]+/g, "").toUpperCase();
 
 /** "BE71096123456769" -> "BE71 0961 2345 6769" */
-export const formatIban = (iban: string) => compact(iban).replace(/(.{4})(?=.)/g, "$1 ");
+export const formatIban = (iban: string) => friendlyFormatIBAN(compact(iban)) ?? iban;
 
 export type IbanProblem = "format" | "country" | "length" | "checksum";
 
-/** Why an IBAN is not a valid SEPA IBAN, or null when it is. Expects compact() input. */
+/**
+ * Why an IBAN is not a valid SEPA IBAN, or null when it is. Expects compact() input.
+ * The checks (per-country length and structure, mod-97 checksum, SEPA membership) come from ibantools.
+ */
 export function ibanProblem(iban: string): IbanProblem | null {
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]+$/.test(iban)) return "format";
-  const length = SEPA_IBAN_LENGTHS[iban.slice(0, 2)];
-  if (!length) return "country";
-  if (iban.length !== length) return "length";
-  // ISO 13616: move the first four characters to the end, turn letters into 10..35, and the number mod 97 must be 1.
-  const digits = (iban.slice(4) + iban.slice(0, 4)).replace(/[A-Z]/g, (c) => String(c.charCodeAt(0) - 55));
-  let rest = 0;
-  for (const d of digits) rest = (rest * 10 + Number(d)) % 97;
-  return rest === 1 ? null : "checksum";
+  const { valid, errorCodes } = validateIBAN(iban);
+  if (errorCodes.includes(ValidationErrorsIBAN.NoIBANCountry) || !isSEPACountry(iban.slice(0, 2))) return "country";
+  if (valid) return null;
+  if (errorCodes.includes(ValidationErrorsIBAN.WrongBBANLength)) return "length";
+  return "checksum";
 }
 
-/** BIC (SWIFT code): 4 letters bank, 2 letters country, 2 location, optional 3 branch. Expects compact() input. */
-export const isBic = (bic: string) => /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(bic);
+/** BIC (SWIFT code) of 8 or 11 characters, checked by ibantools. Expects compact() input. */
+export const isBic = (bic: string) => isValidBIC(bic);
 
 export const MAX_HOLDER_NAME = 70;
 const MAX_REMITTANCE = 140;
