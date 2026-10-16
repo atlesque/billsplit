@@ -1,5 +1,5 @@
 import { audit } from "./audit";
-import type { User } from "./auth";
+import { isAdmin, type User } from "./auth";
 import { HttpError, now, optionalText, randomId, readJson, text } from "./http";
 import { requestLang, tr } from "./i18n";
 import { activeGroupLink, insertGroupLink } from "./invites";
@@ -130,6 +130,8 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
     listPayments(env, groupId),
   ]);
   const accountOf = new Map(memberRows.map((m) => [m.id, m.user_id]));
+  // Other people's email addresses are private; only admins see them.
+  const seesEmails = isAdmin(env, user);
   const balanceMap = balances(
     memberRows.map((m) => m.id),
     expenses.map((e) => ({ paidBy: e.paidBy, amount: e.amount, shares: e.shares })),
@@ -143,7 +145,7 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
       claimed: Boolean(m.user_id),
       isMe: m.id === meId,
       isOwner: m.user_id === group.created_by,
-      email: m.email,
+      email: seesEmails || m.user_id === user.id ? m.email : null,
       // Bank details are shared with the people in your groups, so they can pay you back.
       bank: m.user_id && m.bank_iban ? { name: m.bank_name, iban: m.bank_iban, bic: m.bank_bic } : null,
       balance: balanceMap.get(m.id) ?? 0,
