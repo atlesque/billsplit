@@ -32,17 +32,18 @@
     <h2 class="mb-2 text-lg font-semibold text-highlighted">{{ $t("balances.title") }}</h2>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <ul class="divide-y divide-default">
-        <li v-for="m in data.members" :key="m.id" class="flex items-center gap-3 px-4 py-2.5">
-          <span class="w-1/3 min-w-0 truncate font-semibold text-highlighted">{{ m.isMe ? $t("nameYou", { name: m.name }) : m.name }}</span>
-          <span class="grid h-6 flex-1 grid-cols-2" aria-hidden="true">
-            <span class="relative border-e border-default">
-              <span v-if="m.balance < 0" class="absolute inset-y-0.5 end-0 rounded bg-error/35 dark:bg-error/50" :style="{ width: `${(Math.abs(m.balance) / max) * 100}%` }" />
-            </span>
-            <span class="relative">
-              <span v-if="m.balance > 0" class="absolute inset-y-0.5 start-0 rounded bg-success/35 dark:bg-success/50" :style="{ width: `${(m.balance / max) * 100}%` }" />
-            </span>
+        <!-- Who is ahead or behind, as a word and a tinted amount: no bars, so the list reads calmly. -->
+        <li v-for="m in data.members" :key="m.id" class="flex items-center justify-between gap-3 px-4 py-3">
+          <span class="min-w-0">
+            <span class="block truncate font-semibold text-highlighted">{{ m.isMe ? $t("nameYou", { name: m.name }) : m.name }}</span>
+            <span class="block text-sm text-muted">{{ standing(m) }}</span>
           </span>
-          <span class="w-28 text-end font-semibold whitespace-nowrap tabular-nums" :class="tone(m.balance)">{{ m.balance > 0 ? "+" : "" }}{{ money(m.balance, cur) }}</span>
+          <span
+            class="shrink-0 rounded-md px-2.5 py-1 font-semibold whitespace-nowrap tabular-nums"
+            :class="m.balance > 0 ? 'bg-success/10 text-success' : m.balance < 0 ? 'bg-error/10 text-error' : 'bg-elevated text-muted'"
+          >
+            {{ m.balance > 0 ? "+" : "" }}{{ money(m.balance, cur) }}
+          </span>
         </li>
       </ul>
     </UCard>
@@ -96,7 +97,12 @@ const settleModal = overlay.create(SettleModal);
 const confirmModal = overlay.create(ConfirmModal);
 
 const cur = computed(() => props.data.group.currency);
-const max = computed(() => Math.max(1, ...props.data.members.map((m) => Math.abs(m.balance))));
+// "gets back", "owes" or "settled up", in the second person for you.
+const standing = (m: { balance: number; isMe: boolean }) => {
+  if (m.balance > 0) return t(m.isMe ? "balances.youGetBack" : "balances.getsBack");
+  if (m.balance < 0) return t(m.isMe ? "balances.youOwe" : "balances.owes");
+  return t(m.isMe ? "balances.youSettled" : "balances.settled");
+};
 const member = (id: string) => props.data.members.find((m) => m.id === id);
 const toConfirm = computed(() => props.data.payments.some((p) => p.canConfirm && p.status !== "failed"));
 const pendingFor = (s: Settlement) => props.data.payments.some((p) => p.from === s.from && p.to === s.to && p.status !== "failed");

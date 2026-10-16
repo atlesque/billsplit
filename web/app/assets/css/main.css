@@ -7,8 +7,8 @@
  * - ink: the blue-grey neutral for text, borders and backgrounds;
  * - primary: navy in light mode, the lime tile colour in dark mode. Buttons, tabs, links;
  * - secondary: the lime brand (olive where it must read on white), only for small accents like the logo dot;
- * - one muted moss green for "you're owed" and confirmations, and one muted brick red for "you owe", errors and
- *   destructive buttons. They are toned down from Junk Desk's success/error so they sit with navy and lime.
+ * - one leaf green for "you're owed" and confirmations, and one brick red for "you owe", errors and
+ *   destructive buttons. Both lean warm, towards the lime, so they sit with navy and lime.
  * The palettes below feed Nuxt UI (see app.config.ts); the --ui-* overrides pick the one shade each role uses.
  */
 
@@ -83,10 +83,10 @@
   --ui-radius: 0.375rem;
   --ui-primary: #172b45;
   --ui-secondary: #5f7a12;
-  --ui-success: #47731f;
+  --ui-success: #2f7a1f;
   --ui-info: var(--ui-color-info-600);
   --ui-warning: #7a4f00;
-  --ui-error: #a8432f;
+  --ui-error: #b6341f;
   --ui-text: #142338;
   --ui-text-highlighted: #142338;
   --ui-text-toned: #3a495e;
@@ -104,10 +104,10 @@
 .dark {
   --ui-primary: #d4f578;
   --ui-secondary: #d4f578;
-  --ui-success: #a9cf7f;
+  --ui-success: #9ad46a;
   --ui-info: #8fc3ff;
   --ui-warning: #f2c45a;
-  --ui-error: #e59a8a;
+  --ui-error: #f2876f;
   --ui-text: #e6ebf2;
   --ui-text-highlighted: #f4f7fb;
   --ui-text-toned: #c8d1dd;

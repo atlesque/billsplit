@@ -140,7 +140,13 @@
     "totals": "Totals",
     "paidShare": "paid {paid} · share {share}",
     "pay": "Pay",
-    "markReceived": "Mark received"
+    "markReceived": "Mark received",
+    "getsBack": "gets back",
+    "owes": "owes",
+    "settled": "settled up",
+    "youGetBack": "you get back",
+    "youOwe": "you owe",
+    "youSettled": "you're settled up"
   },
   "share": {
     "created": "Group created",
