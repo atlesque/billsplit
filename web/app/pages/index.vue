@@ -21,14 +21,23 @@
       <UCard :ui="{ body: 'p-0 sm:p-0' }">
         <ul class="divide-y divide-default">
           <li v-for="g in section.groups" :key="g.id">
-            <NuxtLink :to="`/g/${g.id}`" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-elevated/60">
-              <UAvatar :text="initials(g.name)" size="lg" :ui="{ root: 'bg-elevated', fallback: 'text-primary font-bold' }" />
-              <span class="min-w-0 flex-1">
+            <!-- Phones put the balance under the group details; wider screens keep it on the right. -->
+            <NuxtLink
+              :to="`/g/${g.id}`"
+              class="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 px-4 py-3 transition-colors hover:bg-elevated/60 sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+            >
+              <UAvatar
+                :text="initials(g.name)"
+                size="lg"
+                class="row-span-2 sm:row-span-1"
+                :ui="{ root: 'bg-elevated', fallback: 'text-primary font-bold' }"
+              />
+              <span class="min-w-0">
                 <span class="block truncate font-semibold text-highlighted">{{ g.name }}</span>
                 <span class="block text-sm text-muted">{{ peopleCount(g.member_count) }} · {{ $t("groups.spent", { amount: money(g.total, g.currency) }) }}</span>
                 <span v-if="g.to_confirm" class="block text-sm font-semibold text-primary">{{ $t("groups.toConfirm", g.to_confirm) }}</span>
               </span>
-              <span class="text-end text-sm font-semibold whitespace-nowrap tabular-nums" :class="tone(g.my_balance)">
+              <span class="col-start-2 text-sm font-semibold tabular-nums sm:col-start-3 sm:row-start-1 sm:text-end sm:whitespace-nowrap" :class="tone(g.my_balance)">
                 {{
                   g.my_balance === 0
                     ? $t("balance.settled")

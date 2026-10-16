@@ -44,7 +44,7 @@ const nl: Record<string, string> = {
   'There is already someone called "{name}" in this group': 'Er zit al iemand met de naam "{name}" in deze groep',
   "{name} is in some expenses. Remove them from those expenses first.": "{name} staat in een of meer uitgaven. Haal deze persoon daar eerst uit.",
   "Currency must be a 3-letter code such as EUR": "Valuta moet een code van 3 letters zijn, zoals EUR",
-  "Only the person who created the group can delete it": "Alleen wie de groep heeft gemaakt, kan hem verwijderen",
+  "Only the group owner or an admin can delete it": "Alleen de eigenaar van de groep of een beheerder kan hem verwijderen",
   "Person not found": "Persoon niet gevonden",
   "Use “Leave group” to remove yourself": "Gebruik “Groep verlaten” om jezelf te verwijderen",
   "Cross-origin request refused": "Verzoek van een ander domein geweigerd",
@@ -55,6 +55,8 @@ const nl: Record<string, string> = {
   "This invite can no longer be cancelled": "Deze uitnodiging kan niet meer worden ingetrokken",
   "This link doesn't exist. Check the link or ask the group for it again.": "Deze link bestaat niet. Controleer de link of vraag de groep er opnieuw om.",
   "This link no longer works. Ask the group for the current link.": "Deze link werkt niet meer. Vraag de groep om de huidige link.",
+  "This group is locked, so nobody new can join. Ask the group owner to unlock it.":
+    "Deze groep is vergrendeld, dus er kan niemand nieuw bij. Vraag de eigenaar van de groep om hem te ontgrendelen.",
   "This link was just used. Ask the group for the current link.": "Deze link is net gebruikt. Vraag de groep om de huidige link.",
   "Someone else already joined as that person. Pick another name.": "Iemand anders doet al mee als die persoon. Kies een andere naam.",
   "Enter an IBAN, such as BE71 0961 2345 6769": "Vul een IBAN in, zoals BE71 0961 2345 6769",

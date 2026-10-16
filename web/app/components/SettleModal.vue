@@ -16,7 +16,8 @@
       />
 
       <template v-if="bank">
-        <div v-if="euro" class="mb-4 flex flex-col gap-2">
+        <!-- Desktop: scan the QR code with a phone. -->
+        <div v-if="euro" class="mb-4 hidden flex-col gap-2 sm:flex">
           <QrCode :value="qrPayload" :label="$t('settle.qrLabel')" class="w-52 shrink-0 ring-1 ring-default" />
           <p class="font-semibold text-highlighted">
             {{ $t("settle.scan") }}
@@ -29,6 +30,23 @@
           </p>
         </div>
 
+        <!-- Phone: a QR code on the screen you pay with can't be scanned, so hand the code to the banking app instead. -->
+        <div v-if="euro" class="mb-5 sm:hidden">
+          <UButton
+            block
+            size="lg"
+            color="neutral"
+            variant="outline"
+            :icon="canShareFiles ? 'i-lucide-landmark' : 'i-lucide-download'"
+            class="justify-start"
+            :label="$t(canShareFiles ? 'settle.openBankApp' : 'settle.saveQr')"
+            :loading="sharing"
+            @click="shareToBankApp"
+          />
+          <p class="mt-2 text-sm text-muted">{{ $t(canShareFiles ? "settle.openBankAppHelp" : "settle.saveQrHelp") }}</p>
+        </div>
+
+        <p v-if="euro" class="mb-2 text-sm font-semibold text-highlighted sm:hidden">{{ $t("settle.payByHand") }}</p>
         <dl class="divide-y divide-default rounded-lg ring-1 ring-default">
           <div v-for="row in rows" :key="row.label" class="flex items-center gap-3 px-3 py-2">
             <div class="min-w-0 flex-1">
@@ -46,6 +64,22 @@
             />
           </div>
         </dl>
+
+        <div v-if="euro" class="mt-4 sm:hidden">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            :icon="showQr ? 'i-lucide-chevron-up' : 'i-lucide-qr-code'"
+            class="-ms-2.5"
+            :label="$t(showQr ? 'settle.hideQr' : 'settle.showQr')"
+            :aria-expanded="showQr"
+            @click="showQr = !showQr"
+          />
+          <div v-if="showQr" class="mt-2 flex flex-col gap-2">
+            <QrCode :value="qrPayload" :label="$t('settle.qrLabel')" class="w-60 max-w-full ring-1 ring-default" />
+            <p class="text-sm text-muted">{{ $t("settle.showQrHelp") }}</p>
+          </div>
+        </div>
       </template>
     </template>
 
@@ -91,6 +125,36 @@ const rows = computed(() => {
     { label: t("settle.description"), value: remittance.value },
   ];
 });
+
+const showQr = ref(false);
+const sharing = ref(false);
+const qrFile = () => qrPng(qrPayload.value).then((blob) => new File([blob], "billsplit-payment.png", { type: "image/png" }));
+// Phones that can share files open the share sheet, where most European banking apps accept an image with a QR code.
+const canShareFiles = ref(false);
+onMounted(() => {
+  const probe = new File([new Blob()], "probe.png", { type: "image/png" });
+  canShareFiles.value = typeof navigator.share === "function" && !!navigator.canShare?.({ files: [probe] });
+});
+
+async function shareToBankApp() {
+  sharing.value = true;
+  try {
+    const file = await qrFile();
+    if (canShareFiles.value) {
+      await navigator.share({ files: [file], title: t("settle.title", { name: toName.value }) });
+    } else {
+      const url = URL.createObjectURL(file);
+      const a = Object.assign(document.createElement("a"), { href: url, download: file.name });
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  } catch (err) {
+    // Closing the share sheet isn't an error.
+    if ((err as Error).name !== "AbortError") toast.add({ title: t("settle.shareFailed"), color: "error" });
+  } finally {
+    sharing.value = false;
+  }
+}
 
 const busy = ref(false);
 const error = ref("");

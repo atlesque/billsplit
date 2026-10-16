@@ -13,7 +13,7 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 ## Features
 
 - **One email sign-in flow** for new and existing accounts: a magic link plus a 6-digit code.
-- **One share link per group.** Everyone uses the same link. It has a random 144-bit token and doesn't expire on its own. Anyone in the group can copy it, and the group's creator can reset it, which makes the old link stop working. Personal single-use links from earlier versions keep working until used.
+- **One share link per group.** Everyone uses the same link. It has a random 144-bit token and never changes or expires. Only the group's owner (or an admin) sees it. The owner can lock the group, which stops anyone new from joining through any link until it is unlocked; people already in the group are unaffected. Personal single-use links from earlier versions keep working until used.
 - **People without the app** can be added by name and included in splits. If they join later, they pick their name from the list.
 - **Flexible splits.** Split equally, by shares, or by exact amounts. Leftover cents are spread fairly, so shares always add up to the total. You can also record payments between people.
 - **Balances and settle-up.** See who is owed what and a short list of payments that settles everyone. “Mark paid” records a payment.
