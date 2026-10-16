@@ -10,7 +10,7 @@
 
         <div class="grid gap-4 sm:grid-cols-2">
           <UFormField :label="$t('expense.amount', { currency: cur })" name="amount">
-            <UInput v-model="form.amount" inputmode="decimal" placeholder="0.00" required class="w-full" />
+            <UInput v-model="form.amount" v-bind="amountField" required class="w-full" />
           </UFormField>
           <UFormField :label="$t('expense.date')" name="date">
             <UInput v-model="form.date" type="date" required class="w-full" />
@@ -50,8 +50,7 @@
               <UInput
                 v-else-if="mode === 'amounts'"
                 :model-value="amountInputs[m.id]"
-                inputmode="decimal"
-                placeholder="0.00"
+                v-bind="amountField"
                 class="w-28"
                 :ui="{ base: 'text-end' }"
                 :aria-label="$t('expense.amountFor', { name: m.name })"
@@ -69,7 +68,7 @@
               variant="soft"
               icon="i-lucide-check"
               :label="$t('expense.setTotal', { amount: money(assigned, cur) })"
-              @click="form.amount = centsToInput(assigned)"
+              @click="form.amount = amountInput(assigned)"
             />
           </div>
         </div>
@@ -95,7 +94,7 @@ const emit = defineEmits<{ close: [changed: boolean] }>();
 const { t } = useI18n();
 const api = useApi();
 const toast = useToast();
-const { money } = useFormat();
+const { money, amountInput, amountField } = useFormat();
 const { label, expenseTitle, categoryLabel } = useMemberNames(() => props.data);
 const confirmModal = useOverlay().create(ConfirmModal);
 
@@ -115,12 +114,12 @@ const weights = reactive<Record<string, number>>(Object.fromEntries(members.map(
 for (const s of expense?.shares ?? []) weights[s.memberId] = s.weight;
 // What's typed in the per-person amount fields, so typing "12," isn't reformatted under the cursor.
 const amountInputs = reactive<Record<string, string>>({});
-const syncAmountInputs = () => members.forEach((m) => (amountInputs[m.id] = weights[m.id] ? centsToInput(weights[m.id]!) : ""));
+const syncAmountInputs = () => members.forEach((m) => (amountInputs[m.id] = weights[m.id] ? amountInput(weights[m.id]!) : ""));
 syncAmountInputs();
 
 const form = reactive({
   title: expense?.title ?? "",
-  amount: expense ? centsToInput(expense.amount) : "",
+  amount: expense ? amountInput(expense.amount) : "",
   date: expense?.date ?? today(),
   paidBy: expense?.paidBy ?? meId,
   category: expense?.category || NO_CATEGORY,

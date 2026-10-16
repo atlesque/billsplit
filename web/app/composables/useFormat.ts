@@ -5,7 +5,13 @@ export function useFormat() {
   const intlLocale = computed(() => {
     if (locale.value === "nl") return "nl-NL";
     const browser = typeof navigator === "undefined" ? "" : navigator.language ?? "";
-    return browser.toLowerCase().startsWith("en") ? browser : "en";
+    if (!browser.toLowerCase().startsWith("en")) return "en";
+    // Some browsers report tags Intl rejects (e.g. "en-US@posix").
+    try {
+      return Intl.getCanonicalLocales(browser)[0] ?? "en";
+    } catch {
+      return "en";
+    }
   });
 
   const money = (cents: number, currency: string) => {
@@ -19,7 +25,16 @@ export function useFormat() {
     new Date(`${iso}T12:00:00`).toLocaleDateString(intlLocale.value, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   const formatTime = (ms: number | null | undefined) =>
     ms ? new Date(ms).toLocaleString(intlLocale.value, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+  // The decimal mark amounts are shown with, so amount fields can use the same one.
+  const decimal = computed(() => new Intl.NumberFormat(intlLocale.value).formatToParts(1.5).find((p) => p.type === "decimal")?.value ?? ".");
+  const amountInput = (cents: number) => centsToInput(cents, decimal.value);
+  // Attributes for an amount field: a "0,00" placeholder and dot-to-comma typing where commas are the norm.
+  const amountField = computed(() => ({
+    inputmode: "decimal" as const,
+    placeholder: centsToInput(0, decimal.value),
+    ...(decimal.value === "," ? { onInput: dotToComma } : {}),
+  }));
   const peopleCount = (count: number) => t("peopleCount", count);
 
-  return { money, formatDate, formatTime, peopleCount };
+  return { money, formatDate, formatTime, peopleCount, amountInput, amountField };
 }

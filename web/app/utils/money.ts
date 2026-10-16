@@ -14,7 +14,17 @@ export function parseAmount(input: string | number): number {
   return Math.round(parseFloat(s) * 100);
 }
 
-export const centsToInput = (cents: number) => (cents / 100).toFixed(2);
+/** Cents as an input value, with "," as the decimal mark when the locale writes it that way. */
+export const centsToInput = (cents: number, decimal = ".") => (cents / 100).toFixed(2).replace(".", decimal);
+
+/** Input handler that turns a typed "." into "," as you type, keeping the cursor where it was. */
+export function dotToComma(event: Event) {
+  const el = event.target as HTMLInputElement;
+  if (!el.value.includes(".")) return;
+  const { selectionStart, selectionEnd } = el;
+  el.value = el.value.replaceAll(".", ",");
+  if (selectionStart !== null) el.setSelectionRange(selectionStart, selectionEnd);
+}
 
 export const initials = (name: string) =>
   String(name)
