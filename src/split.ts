@@ -62,3 +62,8 @@ export function settle(balanceMap: Map<string, number>): Settlement[] {
   }
   return result;
 }
+
+/** Everyone is settled up: every balance is zero and no payment is waiting to be confirmed. */
+export function isSettled(balanceMap: Map<string, number>, payments: { status: string }[]): boolean {
+  return [...balanceMap.values()].every((b) => b === 0) && !payments.some((p) => p.status === "sent" || p.status === "not_received");
+}

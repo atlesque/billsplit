@@ -13,9 +13,12 @@ import {
   verifyCode,
   verifyLink,
 } from "./auth";
+import { addAttachment, deleteAttachment, getAttachment, removeStaleAttachments } from "./attachments";
 import { createExpense, deleteExpense, updateExpense } from "./expenses";
 import {
   addMember,
+  archiveGroup,
+  assertNotArchived,
   createGroup,
   deleteGroup,
   exportCsv,
@@ -24,6 +27,7 @@ import {
   listGroups,
   removeMember,
   renameMember,
+  reopenGroup,
   updateGroup,
 } from "./groups";
 import { HttpError } from "./http";
@@ -42,6 +46,8 @@ function errorResponse(error: unknown, lang: Lang): Response {
   console.error(error);
   return Response.json({ error: tr(lang, "Something went wrong") }, { status: 500 });
 }
+
+const ARCHIVED_ALLOWED = new Set(["DELETE ", "POST leave", "POST archive", "DELETE archive"]);
 
 async function route(request: Request, env: Env, url: URL): Promise<Response> {
   const { method } = request;
@@ -89,16 +95,33 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   }
   if (m && m[2] && method === "POST") return joinInvite(request, env, user, m[1]);
 
-  m = /^\/api\/groups\/([\w-]+)(?:\/(members|expenses|payments|invites|leave|export\.csv)(?:\/([\w-]+))?)?$/.exec(path);
+  m = /^\/api\/groups\/([\w-]+)\/expenses\/([\w-]+)\/attachments$/.exec(path);
+  if (m && method === "POST") {
+    await assertNotArchived(env, m[1]);
+    return addAttachment(request, env, user, m[1], m[2]);
+  }
+
+  m = /^\/api\/groups\/([\w-]+)(?:\/(members|expenses|payments|invites|attachments|archive|leave|export\.csv)(?:\/([\w-]+))?)?$/.exec(path);
   if (m) {
     const [, groupId, sub, itemId] = m;
-    switch (`${method} ${sub ?? ""}${itemId ? "/:id" : ""}`) {
+    const key = `${method} ${sub ?? ""}${itemId ? "/:id" : ""}`;
+    // An archived group can only be read, left, deleted or reopened.
+    if (method !== "GET" && !ARCHIVED_ALLOWED.has(key)) await assertNotArchived(env, groupId);
+    switch (key) {
       case "GET ":
         return getGroup(env, user, groupId);
       case "PATCH ":
         return updateGroup(request, env, user, groupId);
       case "DELETE ":
         return deleteGroup(request, env, user, groupId);
+      case "POST archive":
+        return archiveGroup(request, env, user, groupId);
+      case "DELETE archive":
+        return reopenGroup(request, env, user, groupId);
+      case "GET attachments/:id":
+        return getAttachment(env, user, groupId, itemId);
+      case "DELETE attachments/:id":
+        return deleteAttachment(request, env, user, groupId, itemId);
       case "POST leave":
         return leaveGroup(request, env, user, groupId);
       case "GET export.csv":
@@ -148,5 +171,6 @@ export default {
 
   async scheduled(_controller, env, ctx): Promise<void> {
     ctx.waitUntil(cleanup(env));
+    ctx.waitUntil(removeStaleAttachments(env));
   },
 } satisfies ExportedHandler<Env>;

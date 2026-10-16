@@ -22,6 +22,7 @@ export interface GroupSummary {
   my_balance: number;
   /** Payments to you that are waiting for you to confirm. */
   to_confirm: number;
+  archived_at: number | null;
 }
 
 export interface Group {
@@ -33,6 +34,12 @@ export interface Group {
   /** The owner or an admin: may change the group's details and see or reset its share link. */
   canManage: boolean;
   shareToken: string | null;
+  /** Archived groups are read-only. */
+  archived_at: number | null;
+  /** When the daily cleanup removed this archived group's attachments. */
+  attachments_removed_at: number | null;
+  /** Every balance is zero and no payment is waiting to be confirmed, so it can be archived. */
+  settled: boolean;
 }
 
 export interface Member {
@@ -54,6 +61,14 @@ export interface Share {
   amount?: number;
 }
 
+/** A receipt or invoice on an expense, opened from /api/groups/:id/attachments/:attachmentId. */
+export interface Attachment {
+  id: string;
+  name: string;
+  contentType: string;
+  size: number;
+}
+
 export type SplitMode = "equal" | "shares" | "amounts";
 
 export interface Expense {
@@ -68,6 +83,7 @@ export interface Expense {
   shares: Share[];
   /** Whoever added it, the group owner or an admin. Missing on a new or prefilled expense. */
   canEdit?: boolean;
+  attachments?: Attachment[];
 }
 
 export interface Settlement {

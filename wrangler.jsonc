@@ -27,10 +27,14 @@
     "not_found_handling": "single-page-application"
   },
 
+  // Expense attachments (receipts and invoices), served only to the group's members through /api.
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "billsplit-attachments" }],
+
   // Sign-in emails. EMAIL_FROM must be on a domain onboarded to Cloudflare Email Sending.
   "send_email": [{ "name": "EMAIL" }],
 
-  // Cleans up expired sign-in codes and sessions once a day.
+  // Once a day: cleans up expired sign-in codes and sessions, and removes the attachments of
+  // archived groups that have been quiet for 90 days.
   "triggers": { "crons": ["17 3 * * *"] },
 
   "vars": {

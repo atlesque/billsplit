@@ -35,6 +35,10 @@ export function useFormat() {
     ...(decimal.value === "," ? { onInput: dotToComma } : {}),
   }));
   const peopleCount = (count: number) => t("peopleCount", count);
+  const fileSize = (bytes: number) => {
+    const [value, unit] = bytes < 1024 * 1024 ? [Math.max(1, Math.round(bytes / 1024)), "kilobyte"] : [bytes / 1024 / 1024, "megabyte"];
+    return new Intl.NumberFormat(intlLocale.value, { style: "unit", unit, unitDisplay: "short", maximumFractionDigits: 1 }).format(value);
+  };
 
-  return { money, formatDate, formatTime, peopleCount, amountInput, amountField };
+  return { money, formatDate, formatTime, peopleCount, amountInput, amountField, fileSize };
 }

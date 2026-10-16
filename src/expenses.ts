@@ -1,3 +1,4 @@
+import { deleteFiles } from "./attachments";
 import { audit } from "./audit";
 import type { User } from "./auth";
 import { canEditExpense, groupForUser } from "./groups";
@@ -8,7 +9,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MODES: SplitMode[] = ["equal", "shares", "amounts"];
 
 /** Loads an expense and refuses unless this user may change it (see canEditExpense). */
-async function editableExpense(env: Env, user: User, groupId: string, expenseId: string) {
+export async function editableExpense(env: Env, user: User, groupId: string, expenseId: string) {
   const { group } = await groupForUser(env, groupId, user);
   const row = await env.DB.prepare(
     `SELECT e.title, e.amount_cents, e.kind, e.paid_by, e.created_by, m.user_id AS payer_account
@@ -109,13 +110,18 @@ export async function updateExpense(request: Request, env: Env, user: User, grou
 
 export async function deleteExpense(request: Request, env: Env, user: User, groupId: string, expenseId: string) {
   const before = await editableExpense(env, user, groupId, expenseId);
+  const { results: files } = await env.DB.prepare("SELECT key FROM attachments WHERE expense_id = ? AND group_id = ?")
+    .bind(expenseId, groupId)
+    .all<{ key: string }>();
   const res = await env.DB.batch([
+    env.DB.prepare("DELETE FROM attachments WHERE expense_id = ? AND group_id = ?").bind(expenseId, groupId),
     // A confirmed settle-up payment is this expense, so deleting it removes the payment too.
     env.DB.prepare("DELETE FROM payments WHERE expense_id IN (SELECT id FROM expenses WHERE id = ? AND group_id = ?)").bind(expenseId, groupId),
     env.DB.prepare("DELETE FROM expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE id = ? AND group_id = ?)").bind(expenseId, groupId),
     env.DB.prepare("DELETE FROM expenses WHERE id = ? AND group_id = ?").bind(expenseId, groupId),
   ]);
-  if (!res[2].meta.changes) throw new HttpError(404, "Expense not found");
+  if (!res[3].meta.changes) throw new HttpError(404, "Expense not found");
+  await deleteFiles(env, files.map((f) => f.key));
   await audit(env, request, user, "expense.deleted", { groupId, target: expenseId, details: { kind: before.kind, title: before.title, amount: before.amount_cents } });
   return new Response(null, { status: 204 });
 }

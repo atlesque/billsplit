@@ -12,7 +12,7 @@
       </div>
       <!-- From two people on, the share link moves from the big card to this button. -->
       <UButton
-        v-if="shareButton && group.canManage"
+        v-if="shareButton && group.canManage && !group.archived_at"
         icon="i-lucide-share-2"
         color="neutral"
         variant="outline"
@@ -23,6 +23,15 @@
         @click="shareModal.open({ group, title: $t('link.inviteTitle', { name: group.name }) })"
       />
     </div>
+
+    <UAlert v-if="group.archived_at" class="mb-4" color="neutral" variant="subtle" icon="i-lucide-archive" :title="$t('archive.banner')">
+      <template #description>
+        {{ $t(group.attachments_removed_at ? "archive.attachmentsRemoved" : "archive.attachmentsKept") }}
+      </template>
+      <template v-if="group.canManage" #actions>
+        <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-archive-restore" :label="$t('archive.reopen')" :loading="reopening" @click="reopen" />
+      </template>
+    </UAlert>
 
     <div class="mb-4 grid grid-cols-2 gap-3">
       <UCard :ui="{ body: 'p-3 sm:p-4' }">
@@ -36,7 +45,7 @@
     </div>
 
     <!-- While you're the only person in the group, the share link is the main call to action. -->
-    <GroupLinkCard v-if="!shareButton && tab !== 'people' && group.canManage" :group="group" />
+    <GroupLinkCard v-if="!shareButton && tab !== 'people' && group.canManage && !group.archived_at" :group="group" />
 
     <!-- An underlined tab bar, so the tabs read as navigation and the only filled primary button is Add expense. -->
     <UTabs
@@ -68,6 +77,7 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const api = useApi();
+const toast = useToast();
 const { money, peopleCount } = useFormat();
 const overlay = useOverlay();
 const shareModal = overlay.create(ShareModal);
@@ -106,6 +116,21 @@ watch(data, (value) => {
 
 async function openExpense(expense: Expense | null, fromTemplate = false) {
   const changed = await expenseModal.open({ data: data.value!, expense, fromTemplate }).result;
-  if (changed) refresh();
+  // Closed some other way than its buttons (Escape, the X): attachments may still have changed.
+  if (changed !== false) refresh();
+}
+
+const reopening = ref(false);
+async function reopen() {
+  reopening.value = true;
+  try {
+    await api(`/groups/${id.value}/archive`, { method: "DELETE" });
+    toast.add({ title: t("archive.reopened"), color: "success" });
+    await refresh();
+  } catch (err) {
+    toast.add({ title: (err as Error).message, color: "error" });
+  } finally {
+    reopening.value = false;
+  }
 }
 </script>
