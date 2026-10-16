@@ -208,6 +208,8 @@
     "allAssigned": "Heel {amount} is verdeeld.",
     "leftToAssign": "Nog {amount} te verdelen.",
     "tooMuch": "{amount} te veel verdeeld.",
+    "assignedSoFar": "Tot nu toe {amount} verdeeld.",
+    "setTotal": "Totaal op {amount} zetten",
     "splitCount": "Verdeeld over 1 persoon. | Verdeeld over {count} personen.",
     "pickOne": "Kies minstens één persoon.",
     "invalidAmount": "Vul een geldig bedrag in",

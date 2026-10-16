@@ -60,7 +60,18 @@
               <span class="w-24 text-end text-sm text-muted tabular-nums">{{ weights[m.id]! > 0 ? money(preview.get(m.id) ?? 0, cur) : "—" }}</span>
             </li>
           </ul>
-          <p class="mt-1 text-sm" :class="summary.bad ? 'neg' : 'text-muted'">{{ summary.text }}</p>
+          <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <p class="text-sm" :class="summary.bad ? 'neg' : 'text-muted'">{{ summary.text }}</p>
+            <UButton
+              v-if="mode === 'amounts' && assigned > 0 && assigned !== amount"
+              size="xs"
+              color="primary"
+              variant="soft"
+              icon="i-lucide-check"
+              :label="$t('expense.setTotal', { amount: money(assigned, cur) })"
+              @click="form.amount = centsToInput(assigned)"
+            />
+          </div>
         </div>
 
         <p v-if="error" class="text-sm text-error">{{ error }}</p>
@@ -150,9 +161,14 @@ const preview = computed(() => {
   return result;
 });
 
+/** The per-person amounts added up, in cents (only used when splitting by amount). */
+const assigned = computed(() => Object.values(weights).reduce((a, b) => a + b, 0));
+
 const summary = computed(() => {
   if (mode.value === "amounts") {
-    const left = amount.value - Object.values(weights).reduce((a, b) => a + b, 0);
+    // Amounts typed in before the total: no error yet, the total can be set from them.
+    if (!amount.value && assigned.value) return { text: t("expense.assignedSoFar", { amount: money(assigned.value, cur) }), bad: false };
+    const left = amount.value - assigned.value;
     const key = left === 0 ? "expense.allAssigned" : left > 0 ? "expense.leftToAssign" : "expense.tooMuch";
     return { text: t(key, { amount: money(left === 0 ? amount.value : Math.abs(left), cur) }), bad: left !== 0 };
   }
