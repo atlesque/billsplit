@@ -455,5 +455,19 @@
       "not_received": "Gemarkeerd als nog niet ontvangen",
       "failed": "Gemarkeerd als mislukt"
     }
+  },
+  "person": {
+    "open": "Uitgaven en betalingen van {name} tonen",
+    "youTitle": "Jouw saldo",
+    "toPay": "Wie je moet betalen",
+    "toReceive": "Wie jou moet betalen",
+    "noExpenses": "{name} doet nog niet mee in uitgaven.",
+    "noExpensesYou": "Je doet nog niet mee in uitgaven.",
+    "lent": "schoot {amount} voor",
+    "owes": "moet {amount} betalen",
+    "gave": "gaf {amount}",
+    "received": "ontving {amount}",
+    "ctaOwe": "Betaal wat je nog moet",
+    "ctaOwed": "Reken af wat je nog krijgt"
   }
 }

@@ -35,6 +35,26 @@
       </UCard>
     </div>
 
+    <!-- Paying what you owe, or confirming what you're owed, starts from your own overview. Outlined: filled primary is for Add expense. -->
+    <UButton
+      v-if="mine.balance || myPaymentsToConfirm"
+      block
+      size="lg"
+      color="neutral"
+      variant="outline"
+      :icon="mine.balance < 0 ? 'i-lucide-hand-coins' : 'i-lucide-circle-check'"
+      trailing-icon="i-lucide-chevron-right"
+      class="mb-4 justify-start"
+      :ui="{ trailingIcon: 'ms-auto' }"
+      :label="$t(mine.balance < 0 ? 'person.ctaOwe' : 'person.ctaOwed')"
+      @click="openPerson(mine.id)"
+    >
+      <template v-if="myPaymentsToConfirm" #trailing>
+        <UBadge color="neutral" variant="solid" size="sm" class="ms-auto" :label="String(myPaymentsToConfirm)" />
+        <UIcon name="i-lucide-chevron-right" class="size-5 shrink-0" />
+      </template>
+    </UButton>
+
     <!-- While you're the only person in the group, the share link is the main call to action. -->
     <GroupLinkCard v-if="!shareButton && tab !== 'people' && group.canManage" :group="group" />
 
@@ -51,14 +71,14 @@
     />
 
     <GroupExpensesTab v-if="tab === 'expenses'" :data="data" @add="openExpense(null)" @open="openExpense" />
-    <GroupBalancesTab v-else-if="tab === 'balances'" :data="data" @changed="refresh" />
+    <GroupBalancesTab v-else-if="tab === 'balances'" :data="data" @changed="refresh" @person="openPerson" />
     <GroupPeopleTab v-else-if="tab === 'people'" :data="data" @changed="refresh" />
     <GroupSettingsTab v-else :data="data" @changed="refresh" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ExpenseModal, ShareModal } from "#components";
+import { ExpenseModal, PersonModal, ShareModal } from "#components";
 
 const TABS = ["expenses", "balances", "people", "settings"] as const;
 const TAB_ICONS = { expenses: "i-lucide-receipt", balances: "i-lucide-scale", people: "i-lucide-users", settings: "i-lucide-settings" } as const;
@@ -72,6 +92,7 @@ const { money, peopleCount } = useFormat();
 const overlay = useOverlay();
 const shareModal = overlay.create(ShareModal);
 const expenseModal = overlay.create(ExpenseModal);
+const personModal = overlay.create(PersonModal);
 
 const id = computed(() => String(route.params.id));
 const { data, error, pending, refresh } = useLoad(() => api<GroupData>(`/groups/${id.value}`), id);
@@ -95,6 +116,16 @@ const tabs = computed(() =>
     badge: key === "balances" && toConfirm.value ? { label: String(toConfirm.value), color: "neutral" as const, variant: "solid" as const, size: "sm" as const } : undefined,
   })),
 );
+
+const myPaymentsToConfirm = computed(() => data.value?.payments.filter((p) => p.to === data.value!.meId && p.canConfirm && p.status !== "failed").length ?? 0);
+
+function openPerson(memberId: string) {
+  personModal.open({ data: data.value!, memberId, onChanged: refresh });
+}
+// Keep an open overview in step with the group after a payment or an edit.
+watch(data, (value) => {
+  if (value) personModal.patch({ data: value });
+});
 
 // Right after creating a group, show its share link.
 watch(data, (value) => {
