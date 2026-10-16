@@ -51,7 +51,7 @@
     />
 
     <GroupExpensesTab v-if="tab === 'expenses'" :data="data" @add="openExpense(null)" @open="openExpense" />
-    <GroupBalancesTab v-else-if="tab === 'balances'" :data="data" @settle="settle" />
+    <GroupBalancesTab v-else-if="tab === 'balances'" :data="data" @changed="refresh" />
     <GroupPeopleTab v-else-if="tab === 'people'" :data="data" @changed="refresh" />
     <GroupSettingsTab v-else :data="data" @changed="refresh" />
   </div>
@@ -85,7 +85,16 @@ const tab = computed<Tab>({
   get: () => (TABS.includes(route.query.tab as Tab) ? (route.query.tab as Tab) : "expenses"),
   set: (value) => router.push({ query: value === "expenses" ? {} : { tab: value } }),
 });
-const tabs = computed(() => TABS.map((key) => ({ label: t(`tab.${key}`), value: key, icon: TAB_ICONS[key] })));
+// Payments waiting for you to confirm show as a count on the Balances tab.
+const toConfirm = computed(() => data.value?.payments.filter((p) => p.canConfirm && p.status === "sent").length ?? 0);
+const tabs = computed(() =>
+  TABS.map((key) => ({
+    label: t(`tab.${key}`),
+    value: key,
+    icon: TAB_ICONS[key],
+    badge: key === "balances" && toConfirm.value ? { label: String(toConfirm.value), color: "neutral" as const, variant: "solid" as const, size: "sm" as const } : undefined,
+  })),
+);
 
 // Right after creating a group, show its share link.
 watch(data, (value) => {
@@ -98,9 +107,5 @@ watch(data, (value) => {
 async function openExpense(expense: Expense | null, fromTemplate = false) {
   const changed = await expenseModal.open({ data: data.value!, expense, fromTemplate }).result;
   if (changed) refresh();
-}
-
-function settle(s: Settlement) {
-  openExpense({ kind: "transfer", title: "Payment", amount: s.amount, paidBy: s.from, date: today(), splitMode: "equal", shares: [{ memberId: s.to, weight: 1 }] }, true);
 }
 </script>

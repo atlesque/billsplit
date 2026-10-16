@@ -55,6 +55,21 @@ const nl: Record<string, string> = {
   "This link no longer works. Ask the group for the current link.": "Deze link werkt niet meer. Vraag de groep om de huidige link.",
   "This link was just used. Ask the group for the current link.": "Deze link is net gebruikt. Vraag de groep om de huidige link.",
   "Someone else already joined as that person. Pick another name.": "Iemand anders doet al mee als die persoon. Kies een andere naam.",
+  "Enter an IBAN, such as BE71 0961 2345 6769": "Vul een IBAN in, zoals BE71 0961 2345 6769",
+  "Only IBANs from SEPA countries (the EU, EEA, UK and Switzerland, among others) are supported":
+    "Alleen IBAN's uit SEPA-landen (onder meer de EU, de EER, het VK en Zwitserland) worden ondersteund",
+  "This IBAN has the wrong number of characters for its country": "Deze IBAN heeft het verkeerde aantal tekens voor zijn land",
+  "This IBAN isn't valid. Check it for typos.": "Deze IBAN klopt niet. Controleer hem op tikfouten.",
+  "Enter a BIC of 8 or 11 characters, such as GKCCBEBB, or leave it empty":
+    "Vul een BIC van 8 of 11 tekens in, zoals GKCCBEBB, of laat het leeg",
+  "Unknown participant in payment": "Onbekende deelnemer in de betaling",
+  "Only {name} can mark this payment as sent": "Alleen {name} kan deze betaling als verstuurd markeren",
+  "A payment from {from} to {to} is already waiting to be confirmed": "Een betaling van {from} aan {to} wacht al op bevestiging",
+  "Payment not found": "Betaling niet gevonden",
+  "Unknown payment status": "Onbekende betalingsstatus",
+  "Only {name} can confirm this payment": "Alleen {name} kan deze betaling bevestigen",
+  "This payment is already closed": "Deze betaling is al afgerond",
+  "Only {name} can cancel this payment": "Alleen {name} kan deze betaling annuleren",
 
   // Field names used in validation errors
   Email: "E-mailadres",
@@ -68,6 +83,7 @@ const nl: Record<string, string> = {
   "Group name": "Groepsnaam",
   Description: "Beschrijving",
   "Your name": "Je naam",
+  "Account holder": "Rekeninghouder",
 
   // Sign-in email
   "Sign in to BillSplit (code {code})": "Inloggen bij BillSplit (code {code})",

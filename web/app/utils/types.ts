@@ -1,9 +1,16 @@
 // Shapes returned by the Worker API (src/).
 
+export interface BankDetails {
+  name: string;
+  iban: string;
+  bic: string;
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
+  bank: BankDetails | null;
 }
 
 export interface GroupSummary {
@@ -13,6 +20,8 @@ export interface GroupSummary {
   member_count: number;
   total: number;
   my_balance: number;
+  /** Payments to you that are waiting for you to confirm. */
+  to_confirm: number;
 }
 
 export interface Group {
@@ -31,6 +40,7 @@ export interface Member {
   isOwner: boolean;
   claimed: boolean;
   email: string | null;
+  bank: BankDetails | null;
   balance: number;
   paid: number;
   spent: number;
@@ -62,11 +72,27 @@ export interface Settlement {
   amount: number;
 }
 
+export type PaymentStatus = "sent" | "not_received" | "failed" | "received";
+
+/** A settle-up payment that isn't complete yet (received ones are transfer expenses). */
+export interface Payment {
+  id: string;
+  from: string;
+  to: string;
+  amount: number;
+  status: PaymentStatus;
+  createdAt: number;
+  updatedAt: number;
+  canConfirm: boolean;
+  canCancel: boolean;
+}
+
 export interface GroupData {
   group: Group;
   members: Member[];
   expenses: Expense[];
   settlements: Settlement[];
+  payments: Payment[];
   meId: string;
 }
 

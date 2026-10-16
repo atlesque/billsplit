@@ -102,10 +102,12 @@ export async function deleteExpense(request: Request, env: Env, user: User, grou
     .first<{ title: string; amount_cents: number; kind: string }>();
   if (!before) throw new HttpError(404, "Expense not found");
   const res = await env.DB.batch([
+    // A confirmed settle-up payment is this expense, so deleting it removes the payment too.
+    env.DB.prepare("DELETE FROM payments WHERE expense_id IN (SELECT id FROM expenses WHERE id = ? AND group_id = ?)").bind(expenseId, groupId),
     env.DB.prepare("DELETE FROM expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE id = ? AND group_id = ?)").bind(expenseId, groupId),
     env.DB.prepare("DELETE FROM expenses WHERE id = ? AND group_id = ?").bind(expenseId, groupId),
   ]);
-  if (!res[1].meta.changes) throw new HttpError(404, "Expense not found");
+  if (!res[2].meta.changes) throw new HttpError(404, "Expense not found");
   await audit(env, request, user, "expense.deleted", { groupId, target: expenseId, details: { kind: before.kind, title: before.title, amount: before.amount_cents } });
   return new Response(null, { status: 204 });
 }
