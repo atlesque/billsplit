@@ -31,7 +31,8 @@
             </li>
           </ul>
         </div>
-        <p class="text-sm text-muted">{{ $t("expense.readOnly") }}</p>
+        <ExpenseAttachments v-model:attachments="attachments" v-model:pending="pendingFiles" :group-id="data.group.id" :expense-id="expense!.id!" :editable="false" />
+        <p class="text-sm text-muted">{{ $t(archived ? "expense.archived" : "expense.readOnly") }}</p>
       </div>
       <UForm v-else id="expense-form" :state="form" class="space-y-4" @submit="submit">
         <UTabs v-model="kind" :items="kinds" :content="false" size="sm" :aria-label="$t('expense.type')" />
@@ -105,17 +106,26 @@
           </div>
         </div>
 
+        <ExpenseAttachments
+          v-model:attachments="attachments"
+          v-model:pending="pendingFiles"
+          :group-id="data.group.id"
+          :expense-id="isEdit ? expense!.id! : null"
+          :editable="!readOnly"
+          @changed="filesChanged = true"
+        />
+
         <p v-if="error" class="text-sm text-error">{{ error }}</p>
       </UForm>
     </template>
     <template #footer>
       <div v-if="readOnly" class="flex w-full justify-end">
-        <UButton color="neutral" variant="outline" :label="$t('action.close')" @click="emit('close', false)" />
+        <UButton color="neutral" variant="outline" :label="$t('action.close')" @click="emit('close', filesChanged)" />
       </div>
       <div v-else class="flex w-full flex-wrap gap-2">
         <UButton type="submit" form="expense-form" class="flex-1 justify-center" :label="$t(isEdit ? 'action.save' : 'action.add')" :loading="busy" />
         <UButton v-if="isEdit" color="error" variant="outline" :label="$t('action.delete')" @click="remove" />
-        <UButton color="neutral" variant="ghost" :label="$t('action.cancel')" @click="emit('close', false)" />
+        <UButton color="neutral" variant="ghost" :label="$t('action.cancel')" @click="emit('close', filesChanged)" />
       </div>
     </template>
   </UModal>
@@ -140,8 +150,13 @@ const cur = props.data.group.currency;
 const expense = props.expense;
 // "Mark paid" opens a prefilled payment that is still a new one.
 const isEdit = Boolean(expense?.id) && !props.fromTemplate;
-// Someone else's expense opens as read-only details; the server refuses changes too.
-const readOnly = isEdit && expense?.canEdit === false;
+// Someone else's expense, or any expense in an archived group, opens as read-only details; the server refuses changes too.
+const archived = Boolean(props.data.group.archived_at);
+const readOnly = isEdit && (archived || expense?.canEdit === false);
+// Attachments of a saved expense upload straight away; on a new one they wait until it's added.
+const attachments = ref<Attachment[]>(isEdit ? [...(expense?.attachments ?? [])] : []);
+const pendingFiles = ref<File[]>([]);
+const filesChanged = ref(false);
 
 const kind = ref<Expense["kind"]>(expense?.kind ?? "expense");
 const transfer = computed(() => kind.value === "transfer");
@@ -259,7 +274,14 @@ async function submit() {
   try {
     const groupId = props.data.group.id;
     if (isEdit) await api(`/groups/${groupId}/expenses/${expense!.id}`, { method: "PUT", body });
-    else await api(`/groups/${groupId}/expenses`, { method: "POST", body });
+    else {
+      const { id } = await api<{ id: string }>(`/groups/${groupId}/expenses`, { method: "POST", body });
+      for (const file of pendingFiles.value) {
+        await uploadAttachment(api, groupId, id, file).catch((err: Error) =>
+          toast.add({ title: t("attachments.uploadFailed", { name: file.name, error: err.message }), color: "error" }),
+        );
+      }
+    }
     toast.add({ title: t(isEdit ? "toast.saved" : transfer.value ? "expense.paymentRecorded" : "expense.added"), color: "success" });
     emit("close", true);
   } catch (err) {

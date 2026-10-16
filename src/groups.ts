@@ -1,10 +1,11 @@
+import { attachmentsByExpense, deleteFiles } from "./attachments";
 import { audit } from "./audit";
 import { isAdmin, type User } from "./auth";
 import { HttpError, now, optionalText, randomId, readJson, text } from "./http";
 import { requestLang, tr } from "./i18n";
 import { activeGroupLink, insertGroupLink } from "./invites";
 import { listPayments } from "./payments";
-import { balances, settle } from "./split";
+import { balances, isSettled, settle } from "./split";
 
 export type Group = {
   id: string;
@@ -13,6 +14,8 @@ export type Group = {
   currency: string;
   created_by: string;
   created_at: number;
+  archived_at: number | null;
+  attachments_removed_at: number | null;
   /** Set while the group is locked: nobody new can join. */
   locked_at: number | null;
 };
@@ -38,7 +41,7 @@ function currency(value: unknown): string {
 /** Loads a group the user belongs to, or 404s without revealing whether it exists. */
 export async function groupForUser(env: Env, groupId: string, user: User): Promise<{ group: Group; meId: string }> {
   const row = await env.DB.prepare(
-    `SELECT g.id, g.name, g.description, g.currency, g.created_by, g.created_at, g.locked_at, m.id AS me_id
+    `SELECT g.id, g.name, g.description, g.currency, g.created_by, g.created_at, g.locked_at, g.archived_at, g.attachments_removed_at, m.id AS me_id
      FROM groups g JOIN members m ON m.group_id = g.id AND m.user_id = ?
      WHERE g.id = ?`,
   )
@@ -52,6 +55,12 @@ export async function groupForUser(env: Env, groupId: string, user: User): Promi
 /** Group settings and the share link belong to the group's owner (its creator); admins can manage them too. */
 export function canManageGroup(env: Env, user: User, group: Group): boolean {
   return group.created_by === user.id || isAdmin(env, user);
+}
+
+/** Archived groups are read-only: refuses any change to one (archiving and leaving are handled separately). */
+export async function assertNotArchived(env: Env, groupId: string): Promise<void> {
+  const row = await env.DB.prepare("SELECT archived_at FROM groups WHERE id = ?").bind(groupId).first<{ archived_at: number | null }>();
+  if (row?.archived_at) throw new HttpError(409, "This group is archived. Reopen it to make changes.");
 }
 
 export async function requireGroupManager(env: Env, groupId: string, user: User) {
@@ -137,7 +146,7 @@ async function expensesWithShares(env: Env, groupId: string) {
 
 export async function listGroups(env: Env, user: User): Promise<Response> {
   const { results } = await env.DB.prepare(
-    `SELECT g.id, g.name, g.description, g.currency, g.created_at, m.id AS me_id,
+    `SELECT g.id, g.name, g.description, g.currency, g.created_at, g.archived_at, m.id AS me_id,
        (SELECT COUNT(*) FROM members WHERE group_id = g.id) AS member_count,
        COALESCE((SELECT SUM(amount_cents) FROM expenses WHERE group_id = g.id AND kind = 'expense'), 0) AS total,
        COALESCE((SELECT SUM(amount_cents) FROM expenses WHERE paid_by = m.id), 0)
@@ -145,7 +154,7 @@ export async function listGroups(env: Env, user: User): Promise<Response> {
        COALESCE((SELECT MAX(updated_at) FROM expenses WHERE group_id = g.id), g.created_at) AS last_activity,
        (SELECT COUNT(*) FROM payments WHERE to_member = m.id AND status = 'sent') AS to_confirm
      FROM groups g JOIN members m ON m.group_id = g.id AND m.user_id = ?
-     ORDER BY last_activity DESC`,
+     ORDER BY g.archived_at IS NOT NULL, last_activity DESC`,
   )
     .bind(user.id)
     .all();
@@ -154,15 +163,17 @@ export async function listGroups(env: Env, user: User): Promise<Response> {
 
 export async function getGroup(env: Env, user: User, groupId: string): Promise<Response> {
   const { group, meId } = await groupForUser(env, groupId, user);
-  const [memberRows, expenses, shareToken, payments] = await Promise.all([
+  const [memberRows, expenses, shareToken, payments, attachments] = await Promise.all([
     members(env, groupId),
     expensesWithShares(env, groupId),
     activeGroupLink(env, groupId),
     listPayments(env, groupId),
+    attachmentsByExpense(env, groupId),
   ]);
   const accountOf = new Map(memberRows.map((m) => [m.id, m.user_id]));
   // Other people's email addresses are private; only admins see them.
   const seesEmails = isAdmin(env, user);
+  const archived = Boolean(group.archived_at);
   const canManage = canManageGroup(env, user, group);
   const balanceMap = balances(
     memberRows.map((m) => m.id),
@@ -170,7 +181,14 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
   );
   return Response.json({
     // Only the owner (and admins) see the share link.
-    group: { ...group, locked: Boolean(group.locked_at), isOwner: group.created_by === user.id, canManage, shareToken: canManage ? shareToken : null },
+    group: {
+      ...group,
+      locked: Boolean(group.locked_at),
+      isOwner: group.created_by === user.id,
+      canManage,
+      shareToken: canManage && !archived ? shareToken : null,
+      settled: isSettled(balanceMap, payments),
+    },
     meId,
     members: memberRows.map((m) => ({
       id: m.id,
@@ -189,7 +207,8 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
     })),
     expenses: expenses.map(({ createdBy, ...e }) => ({
       ...e,
-      canEdit: canEditExpense(env, user, group, { created_by: createdBy, paid_by: e.paidBy }, (id) => accountOf.get(id)),
+      attachments: attachments.get(e.id) ?? [],
+      canEdit: !archived && canEditExpense(env, user, group, { created_by: createdBy, paid_by: e.paidBy }, (id) => accountOf.get(id)),
     })),
     settlements: settle(balanceMap),
     payments: payments.map((p) => ({
@@ -200,8 +219,8 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
       status: p.status,
       createdAt: p.created_at,
       updatedAt: p.updated_at,
-      canConfirm: accountOf.get(p.to_member) === user.id,
-      canCancel: p.status !== "received" && (accountOf.get(p.from_member) === user.id || p.created_by === user.id),
+      canConfirm: !archived && accountOf.get(p.to_member) === user.id,
+      canCancel: !archived && p.status !== "received" && (accountOf.get(p.from_member) === user.id || p.created_by === user.id),
     })),
   });
 }
@@ -279,7 +298,9 @@ export async function setGroupLocked(request: Request, env: Env, user: User, gro
 export async function deleteGroup(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
   const { group } = await groupForUser(env, groupId, user);
   if (!canManageGroup(env, user, group)) throw new HttpError(403, "Only the group owner or an admin can delete it");
+  const { results: files } = await env.DB.prepare("SELECT key FROM attachments WHERE group_id = ?").bind(groupId).all<{ key: string }>();
   await env.DB.batch([
+    env.DB.prepare("DELETE FROM attachments WHERE group_id = ?").bind(groupId),
     env.DB.prepare("DELETE FROM payments WHERE group_id = ?").bind(groupId),
     env.DB.prepare("DELETE FROM expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ?)").bind(groupId),
     env.DB.prepare("DELETE FROM expenses WHERE group_id = ?").bind(groupId),
@@ -287,8 +308,33 @@ export async function deleteGroup(request: Request, env: Env, user: User, groupI
     env.DB.prepare("DELETE FROM members WHERE group_id = ?").bind(groupId),
     env.DB.prepare("DELETE FROM groups WHERE id = ?").bind(groupId),
   ]);
+  await deleteFiles(env, files.map((f) => f.key));
   await audit(env, request, user, "group.deleted", { groupId, target: groupId, details: { name: group.name } });
   return new Response(null, { status: 204 });
+}
+
+/** Archives a settled group (owner or admin). It stays readable, with all its expenses, but can't be changed. */
+export async function archiveGroup(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
+  const { group } = await requireGroupManager(env, groupId, user);
+  if (group.archived_at) return Response.json({ ok: true });
+  const [memberRows, expenses, payments] = await Promise.all([members(env, groupId), expensesWithShares(env, groupId), listPayments(env, groupId)]);
+  const balanceMap = balances(
+    memberRows.map((m) => m.id),
+    expenses.map((e) => ({ paidBy: e.paidBy, amount: e.amount, shares: e.shares })),
+  );
+  if (!isSettled(balanceMap, payments)) throw new HttpError(400, "Everyone has to be settled up before the group can be archived");
+  await env.DB.prepare("UPDATE groups SET archived_at = ?, archived_by = ? WHERE id = ? AND archived_at IS NULL").bind(now(), user.id, groupId).run();
+  await audit(env, request, user, "group.archived", { groupId, target: groupId, details: { name: group.name } });
+  return Response.json({ ok: true });
+}
+
+/** Takes a group out of the archive so it can be changed again (owner or admin). */
+export async function reopenGroup(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
+  const { group } = await requireGroupManager(env, groupId, user);
+  if (!group.archived_at) return Response.json({ ok: true });
+  await env.DB.prepare("UPDATE groups SET archived_at = NULL, archived_by = NULL WHERE id = ?").bind(groupId).run();
+  await audit(env, request, user, "group.reopened", { groupId, target: groupId, details: { name: group.name } });
+  return Response.json({ ok: true });
 }
 
 export async function leaveGroup(request: Request, env: Env, user: User, groupId: string): Promise<Response> {

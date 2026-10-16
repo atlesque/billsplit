@@ -74,6 +74,14 @@ const nl: Record<string, string> = {
   "Only {name} can confirm this payment": "Alleen {name} kan deze betaling bevestigen",
   "This payment is already closed": "Deze betaling is al afgerond",
   "Only {name} can cancel this payment": "Alleen {name} kan deze betaling annuleren",
+  "Choose a file to attach": "Kies een bestand om toe te voegen",
+  "Files can be at most {max} MB": "Bestanden mogen maximaal {max} MB zijn",
+  "Attach a PDF or an image (JPEG, PNG, WebP or GIF)": "Voeg een pdf of een afbeelding toe (JPEG, PNG, WebP of GIF)",
+  "An expense can have at most {max} attachments": "Een uitgave kan maximaal {max} bijlagen hebben",
+  "Attachment not found": "Bijlage niet gevonden",
+  "This group is archived. Reopen it to make changes.": "Deze groep is gearchiveerd. Heropen hem om iets te wijzigen.",
+  "This group is archived and can't be joined": "Deze groep is gearchiveerd en je kunt er niet meer bij",
+  "Everyone has to be settled up before the group can be archived": "Iedereen moet quitte staan voordat de groep gearchiveerd kan worden",
 
   // Field names used in validation errors
   Email: "E-mailadres",

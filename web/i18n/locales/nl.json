@@ -225,7 +225,8 @@
     "samePerson": "Kies twee verschillende personen",
     "paymentRecorded": "Betaling vastgelegd",
     "added": "Uitgave toegevoegd",
-    "deleteConfirm": "\"{title}\" verwijderen?"
+    "deleteConfirm": "\"{title}\" verwijderen?",
+    "archived": "Deze groep is gearchiveerd, dus de uitgaven kunnen niet meer worden gewijzigd."
   },
   "category": {
     "food": "Eten & drinken",
@@ -469,5 +470,30 @@
     "received": "ontving {amount}",
     "ctaOwe": "Betaal wat je nog moet",
     "ctaOwed": "Reken af wat je nog krijgt"
+  },
+  "attachments": {
+    "title": "Bijlagen",
+    "help": "Bonnetjes of facturen als pdf of afbeelding, tot 10 MB per bestand.",
+    "add": "Bestand toevoegen",
+    "remove": "{name} verwijderen",
+    "pending": "Wordt toegevoegd bij opslaan",
+    "uploadFailed": "{name} kon niet worden toegevoegd: {error}",
+    "tooBig": "{name} is groter dan 10 MB",
+    "count": "1 bijlage | {count} bijlagen"
+  },
+  "archive": {
+    "banner": "Deze groep is gearchiveerd. Je kunt alles nog bekijken, maar niets meer wijzigen.",
+    "attachmentsKept": "Bijlagen worden verwijderd na 90 dagen zonder activiteit.",
+    "attachmentsRemoved": "Bijlagen zijn verwijderd na 90 dagen zonder activiteit.",
+    "title": "Archiveren",
+    "help": "Archiveren bewaart de groep en alle uitgaven, maar niemand kan ze nog wijzigen of erbij komen. Bijlagen worden verwijderd na 90 dagen zonder activiteit.",
+    "notSettled": "Iedereen moet quitte staan voordat je de groep kunt archiveren.",
+    "archive": "Groep archiveren",
+    "confirm": "Deze groep archiveren? Niemand kan uitgaven toevoegen of wijzigen tot de groep heropend wordt.",
+    "archived": "Groep gearchiveerd",
+    "reopen": "Groep heropenen",
+    "reopenHelp": "Na heropenen kan iedereen weer uitgaven toevoegen en wijzigen.",
+    "reopened": "Groep heropend",
+    "section": "Gearchiveerd"
   }
 }

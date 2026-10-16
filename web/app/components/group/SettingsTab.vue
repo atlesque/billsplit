@@ -3,7 +3,7 @@
     <UCard>
       <h2 class="mb-3 text-lg font-semibold text-highlighted">{{ $t("settings.details") }}</h2>
       <!-- Only the owner (or an admin) gets fields; everyone else just sees the details. -->
-      <UForm v-if="group.canManage" :state="state" class="space-y-4" @submit="save">
+      <UForm v-if="editable" :state="state" class="space-y-4" @submit="save">
         <!-- Name and currency share a row; they stack on phones. -->
         <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
           <UFormField :label="$t('field.name')" name="name">
@@ -40,6 +40,29 @@
       <UButton :href="`/api/groups/${group.id}/export.csv?lang=${locale}`" external download color="neutral" variant="outline" icon="i-lucide-download" :label="$t('settings.downloadCsv')" />
     </UCard>
 
+    <!-- Owner or admin: archive a settled group, or reopen an archived one. -->
+    <UCard v-if="group.canManage">
+      <h2 class="text-lg font-semibold text-highlighted">{{ $t("archive.title") }}</h2>
+      <template v-if="group.archived_at">
+        <p class="mt-1 mb-3 text-sm text-muted">{{ $t("archive.reopenHelp") }}</p>
+        <UButton color="neutral" variant="outline" icon="i-lucide-archive-restore" :label="$t('archive.reopen')" :loading="archiving" @click="setArchived(false)" />
+      </template>
+      <template v-else>
+        <p class="mt-1 text-sm text-muted">{{ $t("archive.help") }}</p>
+        <p v-if="!group.settled" class="mt-1 text-sm text-muted">{{ $t("archive.notSettled") }}</p>
+        <UButton
+          class="mt-3"
+          color="neutral"
+          variant="outline"
+          icon="i-lucide-archive"
+          :label="$t('archive.archive')"
+          :disabled="!group.settled"
+          :loading="archiving"
+          @click="setArchived(true)"
+        />
+      </template>
+    </UCard>
+
     <UCard>
       <h2 class="text-lg font-semibold text-highlighted">{{ $t(group.canManage ? "settings.leaveOrDelete" : "settings.leave") }}</h2>
       <p class="mt-1 mb-3 text-sm text-muted">{{ $t("settings.leaveHelp") }} {{ group.canManage ? $t("settings.deleteHelp") : "" }}</p>
@@ -62,6 +85,7 @@ const toast = useToast();
 const confirmModal = useOverlay().create(ConfirmModal);
 
 const group = computed(() => props.data.group);
+const editable = computed(() => group.value.canManage && !group.value.archived_at);
 const state = reactive({ name: group.value.name, currency: group.value.currency, description: group.value.description ?? "" });
 const currencies = computed(() => [...new Set([group.value.currency, ...CURRENCIES])]);
 const error = ref("");
@@ -78,6 +102,21 @@ async function save() {
     error.value = (err as Error).message;
   } finally {
     busy.value = false;
+  }
+}
+
+const archiving = ref(false);
+async function setArchived(on: boolean) {
+  if (on && !(await confirmModal.open({ title: t("archive.archive"), description: t("archive.confirm"), confirmLabel: t("archive.archive"), color: "primary" }).result)) return;
+  archiving.value = true;
+  try {
+    await api(`/groups/${group.value.id}/archive`, { method: on ? "POST" : "DELETE" });
+    toast.add({ title: t(on ? "archive.archived" : "archive.reopened"), color: "success" });
+    emit("changed");
+  } catch (err) {
+    toast.add({ title: (err as Error).message, color: "error" });
+  } finally {
+    archiving.value = false;
   }
 }
 

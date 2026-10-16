@@ -225,7 +225,8 @@
     "samePerson": "Pick two different people",
     "paymentRecorded": "Payment recorded",
     "added": "Expense added",
-    "deleteConfirm": "Delete \"{title}\"?"
+    "deleteConfirm": "Delete \"{title}\"?",
+    "archived": "This group is archived, so its expenses can't be changed."
   },
   "category": {
     "food": "Food & drinks",
@@ -469,5 +470,30 @@
     "received": "received {amount}",
     "ctaOwe": "Pay what you owe",
     "ctaOwed": "Settle what you're owed"
+  },
+  "attachments": {
+    "title": "Attachments",
+    "help": "Receipts or invoices as a PDF or an image, up to 10 MB each.",
+    "add": "Attach a file",
+    "remove": "Remove {name}",
+    "pending": "Added when you save",
+    "uploadFailed": "Couldn't attach {name}: {error}",
+    "tooBig": "{name} is larger than 10 MB",
+    "count": "1 attachment | {count} attachments"
+  },
+  "archive": {
+    "banner": "This group is archived. You can still look at everything, but nothing can be changed.",
+    "attachmentsKept": "Attachments are removed after 90 days without activity.",
+    "attachmentsRemoved": "Attachments were removed after 90 days without activity.",
+    "title": "Archive",
+    "help": "Archiving keeps the group and all its expenses, but nobody can change them or join any more. Attachments are removed after 90 days without activity.",
+    "notSettled": "Everyone has to be settled up before you can archive the group.",
+    "archive": "Archive group",
+    "confirm": "Archive this group? Nobody can add or change expenses until it is reopened.",
+    "archived": "Group archived",
+    "reopen": "Reopen group",
+    "reopenHelp": "Reopening lets people add and change expenses again.",
+    "reopened": "Group reopened",
+    "section": "Archived"
   }
 }

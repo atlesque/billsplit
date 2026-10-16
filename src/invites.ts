@@ -111,6 +111,8 @@ export async function joinInvite(request: Request, env: Env, user: User, token: 
   if (mine) return Response.json({ id: invite.group_id });
 
   if (invite.group_locked_at) throw new HttpError(403, "This group is locked, so nobody new can join. Ask the group owner to unlock it.");
+  const archived = await env.DB.prepare("SELECT 1 FROM groups WHERE id = ? AND archived_at IS NOT NULL").bind(invite.group_id).first();
+  if (archived) throw new HttpError(410, "This group is archived and can't be joined");
   const status = inviteStatus(invite);
   if (status !== "active") {
     throw new HttpError(410, "This link no longer works. Ask the group for the current link.");
