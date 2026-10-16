@@ -13,6 +13,8 @@ export type Group = {
   currency: string;
   created_by: string;
   created_at: number;
+  /** Set while the group is locked: nobody new can join. */
+  locked_at: number | null;
 };
 type MemberRow = {
   id: string;
@@ -36,7 +38,7 @@ function currency(value: unknown): string {
 /** Loads a group the user belongs to, or 404s without revealing whether it exists. */
 export async function groupForUser(env: Env, groupId: string, user: User): Promise<{ group: Group; meId: string }> {
   const row = await env.DB.prepare(
-    `SELECT g.id, g.name, g.description, g.currency, g.created_by, g.created_at, m.id AS me_id
+    `SELECT g.id, g.name, g.description, g.currency, g.created_by, g.created_at, g.locked_at, m.id AS me_id
      FROM groups g JOIN members m ON m.group_id = g.id AND m.user_id = ?
      WHERE g.id = ?`,
   )
@@ -168,7 +170,7 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
   );
   return Response.json({
     // Only the owner (and admins) see the share link.
-    group: { ...group, isOwner: group.created_by === user.id, canManage, shareToken: canManage ? shareToken : null },
+    group: { ...group, locked: Boolean(group.locked_at), isOwner: group.created_by === user.id, canManage, shareToken: canManage ? shareToken : null },
     meId,
     members: memberRows.map((m) => ({
       id: m.id,
@@ -262,6 +264,16 @@ export async function updateGroup(request: Request, env: Env, user: User, groupI
   if (cur !== group.currency) changes.currency = { from: group.currency, to: cur };
   if (Object.keys(changes).length) await audit(env, request, user, "group.updated", { groupId, target: groupId, details: changes });
   return Response.json({ ok: true });
+}
+
+/** Locks or unlocks the group. While locked, nobody new can join; people already in it are unaffected. */
+export async function setGroupLocked(request: Request, env: Env, user: User, groupId: string, locked: boolean): Promise<Response> {
+  const { group } = await requireGroupManager(env, groupId, user);
+  if (Boolean(group.locked_at) !== locked) {
+    await env.DB.prepare("UPDATE groups SET locked_at = ? WHERE id = ?").bind(locked ? now() : null, groupId).run();
+    await audit(env, request, user, locked ? "group.locked" : "group.unlocked", { groupId, target: groupId });
+  }
+  return Response.json({ locked });
 }
 
 export async function deleteGroup(request: Request, env: Env, user: User, groupId: string): Promise<Response> {

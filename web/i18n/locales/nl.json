@@ -39,14 +39,16 @@
     "copied": "Link gekopieerd",
     "copy": "Link kopiëren",
     "share": "Delen…",
-    "reset": "Link resetten",
     "groupLink": "Groepslink",
-    "resetConfirm": "Groepslink resetten? De huidige link werkt dan niet meer en je moet de nieuwe opnieuw delen.",
-    "resetDone": "Nieuwe link aangemaakt",
     "shareText": "Doe mee met \"{name}\" op BillSplit om uitgaven te verdelen",
     "inviteTitle": "Nodig mensen uit voor {name}",
     "inviteHelp": "Deel deze link in je groepsapp. Iedereen die hem opent, kan inloggen of een account aanmaken en daarna meedoen in deze groep.",
-    "ownerOnly": "Alleen de eigenaar van de groep kan de uitnodigingslink delen."
+    "ownerOnly": "Alleen de eigenaar van de groep kan de uitnodigingslink delen.",
+    "lock": "Groep vergrendelen",
+    "lockHelp": "Zolang de groep vergrendeld is, kan er niemand nieuw bij. Wie al meedoet, merkt er niets van.",
+    "lockedHelp": "Deze groep is vergrendeld, dus via deze link kan er niemand nieuw bij.",
+    "lockedDone": "Groep vergrendeld",
+    "unlockedDone": "Groep ontgrendeld"
   },
   "account": {
     "admin": "Beheer",
@@ -245,7 +247,10 @@
     "join": "Meedoen",
     "joined": "Je doet nu mee in de groep",
     "deadTitle": "Deze link werkt niet meer.",
-    "deadHelp": "Vraag de groep om de huidige link."
+    "deadHelp": "Vraag de groep om de huidige link.",
+    "lockedTitle": "Deze groep is vergrendeld.",
+    "lockedHelp": "Er kan nu niemand nieuw bij. Vraag de eigenaar van de groep om hem te ontgrendelen.",
+    "memberSignIn": "Doe je al mee in deze groep? Log in"
   },
   "admin": {
     "title": "Beheer",
@@ -351,7 +356,9 @@
     "group": {
       "created": "Groep aangemaakt",
       "updated": "Groep bijgewerkt",
-      "deleted": "Groep verwijderd"
+      "deleted": "Groep verwijderd",
+      "locked": "Groep vergrendeld",
+      "unlocked": "Groep ontgrendeld"
     },
     "member": {
       "added": "Persoon toegevoegd",

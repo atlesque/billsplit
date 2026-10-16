@@ -55,6 +55,8 @@ const nl: Record<string, string> = {
   "This invite can no longer be cancelled": "Deze uitnodiging kan niet meer worden ingetrokken",
   "This link doesn't exist. Check the link or ask the group for it again.": "Deze link bestaat niet. Controleer de link of vraag de groep er opnieuw om.",
   "This link no longer works. Ask the group for the current link.": "Deze link werkt niet meer. Vraag de groep om de huidige link.",
+  "This group is locked, so nobody new can join. Ask the group owner to unlock it.":
+    "Deze groep is vergrendeld, dus er kan niemand nieuw bij. Vraag de eigenaar van de groep om hem te ontgrendelen.",
   "This link was just used. Ask the group for the current link.": "Deze link is net gebruikt. Vraag de groep om de huidige link.",
   "Someone else already joined as that person. Pick another name.": "Iemand anders doet al mee als die persoon. Kies een andere naam.",
   "Enter an IBAN, such as BE71 0961 2345 6769": "Vul een IBAN in, zoals BE71 0961 2345 6769",

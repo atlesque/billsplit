@@ -24,11 +24,12 @@ import {
   listGroups,
   removeMember,
   renameMember,
+  setGroupLocked,
   updateGroup,
 } from "./groups";
 import { HttpError } from "./http";
 import { requestLang, tr, type Lang } from "./i18n";
-import { getInvite, getOrCreateGroupLink, joinInvite, resetGroupLink, revokeInvite } from "./invites";
+import { getInvite, getOrCreateGroupLink, joinInvite, revokeInvite } from "./invites";
 import { withPageMeta } from "./page-meta";
 import { cancelPayment, confirmPayment, createPayment } from "./payments";
 
@@ -89,7 +90,7 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   }
   if (m && m[2] && method === "POST") return joinInvite(request, env, user, m[1]);
 
-  m = /^\/api\/groups\/([\w-]+)(?:\/(members|expenses|payments|invites|leave|export\.csv)(?:\/([\w-]+))?)?$/.exec(path);
+  m = /^\/api\/groups\/([\w-]+)(?:\/(members|expenses|payments|invites|lock|leave|export\.csv)(?:\/([\w-]+))?)?$/.exec(path);
   if (m) {
     const [, groupId, sub, itemId] = m;
     switch (`${method} ${sub ?? ""}${itemId ? "/:id" : ""}`) {
@@ -99,6 +100,10 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
         return updateGroup(request, env, user, groupId);
       case "DELETE ":
         return deleteGroup(request, env, user, groupId);
+      case "POST lock":
+        return setGroupLocked(request, env, user, groupId, true);
+      case "DELETE lock":
+        return setGroupLocked(request, env, user, groupId, false);
       case "POST leave":
         return leaveGroup(request, env, user, groupId);
       case "GET export.csv":
@@ -111,9 +116,6 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
         return removeMember(request, env, user, groupId, itemId);
       case "POST invites":
         return getOrCreateGroupLink(request, env, user, groupId);
-      case "POST invites/:id":
-        if (itemId === "reset") return resetGroupLink(request, env, user, groupId);
-        break;
       case "DELETE invites/:id":
         return revokeInvite(request, env, user, groupId, itemId);
       case "POST expenses":
