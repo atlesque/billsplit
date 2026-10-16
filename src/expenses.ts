@@ -1,11 +1,27 @@
 import { audit } from "./audit";
 import type { User } from "./auth";
-import { groupForUser } from "./groups";
+import { canEditExpense, groupForUser } from "./groups";
 import { cents, HttpError, now, optionalText, randomId, readJson, text } from "./http";
 import { resolveShares, type SplitMode } from "./split";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MODES: SplitMode[] = ["equal", "shares", "amounts"];
+
+/** Loads an expense and refuses unless this user may change it (see canEditExpense). */
+async function editableExpense(env: Env, user: User, groupId: string, expenseId: string) {
+  const { group } = await groupForUser(env, groupId, user);
+  const row = await env.DB.prepare(
+    `SELECT e.title, e.amount_cents, e.kind, e.paid_by, e.created_by, m.user_id AS payer_account
+     FROM expenses e JOIN members m ON m.id = e.paid_by WHERE e.id = ? AND e.group_id = ?`,
+  )
+    .bind(expenseId, groupId)
+    .first<{ title: string; amount_cents: number; kind: string; paid_by: string; created_by: string | null; payer_account: string | null }>();
+  if (!row) throw new HttpError(404, "Expense not found");
+  if (!canEditExpense(env, user, group, row, () => row.payer_account)) {
+    throw new HttpError(403, "Only the person who added this, the group owner or an admin can change it");
+  }
+  return row;
+}
 
 async function parseExpense(request: Request, env: Env, groupId: string) {
   const body = await readJson(request);
@@ -73,11 +89,7 @@ export async function createExpense(request: Request, env: Env, user: User, grou
 }
 
 export async function updateExpense(request: Request, env: Env, user: User, groupId: string, expenseId: string) {
-  await groupForUser(env, groupId, user);
-  const before = await env.DB.prepare("SELECT title, amount_cents FROM expenses WHERE id = ? AND group_id = ?")
-    .bind(expenseId, groupId)
-    .first<{ title: string; amount_cents: number }>();
-  if (!before) throw new HttpError(404, "Expense not found");
+  const before = await editableExpense(env, user, groupId, expenseId);
   const p = await parseExpense(request, env, groupId);
   await env.DB.batch([
     env.DB.prepare(
@@ -96,11 +108,7 @@ export async function updateExpense(request: Request, env: Env, user: User, grou
 }
 
 export async function deleteExpense(request: Request, env: Env, user: User, groupId: string, expenseId: string) {
-  await groupForUser(env, groupId, user);
-  const before = await env.DB.prepare("SELECT title, amount_cents, kind FROM expenses WHERE id = ? AND group_id = ?")
-    .bind(expenseId, groupId)
-    .first<{ title: string; amount_cents: number; kind: string }>();
-  if (!before) throw new HttpError(404, "Expense not found");
+  const before = await editableExpense(env, user, groupId, expenseId);
   const res = await env.DB.batch([
     // A confirmed settle-up payment is this expense, so deleting it removes the payment too.
     env.DB.prepare("DELETE FROM payments WHERE expense_id IN (SELECT id FROM expenses WHERE id = ? AND group_id = ?)").bind(expenseId, groupId),

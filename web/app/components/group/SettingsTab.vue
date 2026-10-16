@@ -2,7 +2,8 @@
   <div class="space-y-4">
     <UCard>
       <h2 class="mb-3 text-lg font-semibold text-highlighted">{{ $t("settings.details") }}</h2>
-      <UForm :state="state" class="space-y-4" @submit="save">
+      <p v-if="!group.canManage" class="-mt-2 mb-3 text-sm text-muted">{{ $t("settings.ownerOnly") }}</p>
+      <UForm :state="state" :disabled="!group.canManage" class="space-y-4" @submit="save">
         <!-- Name and currency share a row; they stack on phones. -->
         <div class="grid gap-4 sm:grid-cols-[1fr_8rem]">
           <UFormField :label="$t('field.name')" name="name">
@@ -16,7 +17,7 @@
           <UTextarea v-model="state.description" :rows="2" maxlength="300" autoresize class="w-full" />
         </UFormField>
         <p v-if="error" class="text-sm text-error">{{ error }}</p>
-        <UButton type="submit" :label="$t('action.save')" :loading="busy" />
+        <UButton v-if="group.canManage" type="submit" :label="$t('action.save')" :loading="busy" />
       </UForm>
     </UCard>
 

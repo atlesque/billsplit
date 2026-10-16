@@ -1,6 +1,7 @@
 <template>
   <div>
-    <GroupLinkCard :group="data.group" compact @changed="emit('changed')" />
+    <GroupLinkCard v-if="data.group.canManage" :group="data.group" compact @changed="emit('changed')" />
+    <p v-else class="text-sm text-muted">{{ $t("link.ownerOnly") }}</p>
     <h2 class="mt-6 mb-2 text-lg font-semibold text-highlighted">{{ $t("people.title") }}</h2>
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <ul class="divide-y divide-default">

@@ -7,7 +7,7 @@
       <UButton icon="i-lucide-copy" :label="$t('link.copy')" @click="copy(url)" />
       <UButton v-if="canShare" color="neutral" variant="outline" icon="i-lucide-share-2" :label="$t('link.share')" @click="share" />
     </div>
-    <UButton v-if="compact && group.isOwner" class="mt-2 -ms-2.5" color="error" variant="link" size="sm" icon="i-lucide-rotate-ccw" :label="$t('link.reset')" @click="reset" />
+    <UButton v-if="compact && group.canManage" class="mt-2 -ms-2.5" color="error" variant="link" size="sm" icon="i-lucide-rotate-ccw" :label="$t('link.reset')" @click="reset" />
   </UCard>
 </template>
 
