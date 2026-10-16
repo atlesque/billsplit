@@ -1,6 +1,6 @@
-// Colours are defined once in assets/css/main.css: success is the same green as primary.
+// The Junk Desk palettes, defined in assets/css/main.css: navy primary, lime secondary, ink greys.
 export default defineAppConfig({
   ui: {
-    colors: { primary: "brand", success: "brand", error: "danger", neutral: "slate" },
+    colors: { primary: "navy", secondary: "lime", success: "green", info: "sky", warning: "amber", error: "red", neutral: "ink" },
   },
 });

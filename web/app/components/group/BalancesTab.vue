@@ -39,7 +39,7 @@
               <span v-if="m.balance < 0" class="absolute inset-y-0.5 end-0 rounded bg-error" :style="{ width: `${(Math.abs(m.balance) / max) * 100}%` }" />
             </span>
             <span class="relative">
-              <span v-if="m.balance > 0" class="absolute inset-y-0.5 start-0 rounded bg-primary" :style="{ width: `${(m.balance / max) * 100}%` }" />
+              <span v-if="m.balance > 0" class="absolute inset-y-0.5 start-0 rounded bg-success" :style="{ width: `${(m.balance / max) * 100}%` }" />
             </span>
           </span>
           <span class="w-28 text-end font-semibold whitespace-nowrap tabular-nums" :class="tone(m.balance)">{{ m.balance > 0 ? "+" : "" }}{{ money(m.balance, cur) }}</span>

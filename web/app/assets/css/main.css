@@ -2,60 +2,145 @@
 @import "@nuxt/ui";
 
 /*
- * Colour system. The whole app uses three colours plus neutral greys:
- * - brand green: the logo colour (#0f766e). Buttons, tabs, links, "you're owed", success toasts.
- * - danger: one red-orange. "You owe", errors and destructive buttons.
- * - slate greys for text, borders and backgrounds.
- * Each is used at one shade in light mode and one in dark mode (see the --ui-* overrides below),
- * so the same green or red-orange shows up everywhere.
+ * The Junk Desk design system (atlesque/outlook-junk-cleaner, ui/app/assets/css/main.css) on BillSplit:
+ * - fonts: Plus Jakarta Sans for everything, DM Serif Display for the big landing heading;
+ * - ink: the blue-grey neutral for text, borders and backgrounds;
+ * - primary: navy in light mode, the lime tile colour in dark mode. Buttons, tabs, links;
+ * - secondary: the lime brand (olive where it must read on white), only for small accents like the logo dot;
+ * - success green for "you're owed" and confirmations, error red for "you owe", errors and destructive buttons.
+ * The palettes below feed Nuxt UI (see app.config.ts); the --ui-* overrides pick the one shade each role uses.
  */
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("/fonts/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("/fonts/plus-jakarta-sans-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "DM Serif Display";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url("/fonts/dm-serif-display-latin-400-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 @theme static {
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "DM Serif Display", Georgia, "Times New Roman", serif;
+  --color-brand: #d4f578;
 
-  --color-brand-50: #f0fdfa;
-  --color-brand-100: #ccfbf1;
-  --color-brand-200: #99f6e4;
-  --color-brand-300: #5eead4;
-  --color-brand-400: #2dd4bf;
-  --color-brand-500: #14b8a6;
-  --color-brand-600: #0d9488;
-  --color-brand-700: #0f766e;
-  --color-brand-800: #115e59;
-  --color-brand-900: #134e4a;
-  --color-brand-950: #042f2e;
+  --color-ink-50: #f6f7f9;
+  --color-ink-100: #f1f3f6;
+  --color-ink-200: #e2e6ec;
+  --color-ink-300: #c9d1dc;
+  --color-ink-400: #9ba7b8;
+  --color-ink-500: #6b778a;
+  --color-ink-600: #556174;
+  --color-ink-700: #3a495e;
+  --color-ink-800: #1a2431;
+  --color-ink-900: #141c27;
+  --color-ink-950: #0d131c;
 
-  --color-danger-50: #fff7ed;
-  --color-danger-100: #ffedd5;
-  --color-danger-200: #fed7aa;
-  --color-danger-300: #fdba74;
-  --color-danger-400: #fb923c;
-  --color-danger-500: #f97316;
-  --color-danger-600: #ea580c;
-  --color-danger-700: #c2410c;
-  --color-danger-800: #9a3412;
-  --color-danger-900: #7c2d12;
-  --color-danger-950: #431407;
+  --color-navy-50: #eef2f7;
+  --color-navy-100: #d9e1ec;
+  --color-navy-200: #b4c3d8;
+  --color-navy-300: #8199bb;
+  --color-navy-400: #4d6890;
+  --color-navy-500: #26426a;
+  --color-navy-600: #172b45;
+  --color-navy-700: #12223a;
+  --color-navy-800: #0e1a2c;
+  --color-navy-900: #0a1320;
+  --color-navy-950: #060c15;
+
+  --color-lime-50: #f8fde9;
+  --color-lime-100: #effbcf;
+  --color-lime-200: #e3f8a6;
+  --color-lime-300: #d4f578;
+  --color-lime-400: #c3e962;
+  --color-lime-500: #9cc23a;
+  --color-lime-600: #7a9a1f;
+  --color-lime-700: #5f7a12;
+  --color-lime-800: #4b5f13;
+  --color-lime-900: #3f5015;
+  --color-lime-950: #212c05;
 }
 
 :root {
-  --ui-radius: 0.5rem;
-  --ui-primary: var(--ui-color-primary-700);
-  --ui-success: var(--ui-color-primary-700);
-  --ui-error: var(--ui-color-error-700);
+  --ui-radius: 0.375rem;
+  --ui-primary: #172b45;
+  --ui-secondary: #5f7a12;
+  --ui-success: #17703f;
+  --ui-info: var(--ui-color-info-600);
+  --ui-warning: #7a4f00;
+  --ui-error: #b42318;
+  --ui-text: #142338;
+  --ui-text-highlighted: #142338;
+  --ui-text-toned: #3a495e;
+  --ui-text-muted: #556174;
+  --ui-text-dimmed: #6b778a;
+  --ui-bg: #ffffff;
+  --ui-bg-muted: #f6f7f9;
+  --ui-bg-elevated: #f1f3f6;
+  --ui-bg-accented: #e2e6ec;
+  --ui-border: #e2e6ec;
+  --ui-border-muted: #eceff4;
+  --ui-border-accented: #c9d1dc;
+  --app-bg: #f6f7f9;
 }
 .dark {
-  --ui-primary: var(--ui-color-primary-400);
-  --ui-success: var(--ui-color-primary-400);
-  --ui-error: var(--ui-color-error-400);
+  --ui-primary: #d4f578;
+  --ui-secondary: #d4f578;
+  --ui-success: #6bd8a0;
+  --ui-info: #8fc3ff;
+  --ui-warning: #f2c45a;
+  --ui-error: #ff8f85;
+  --ui-text: #e6ebf2;
+  --ui-text-highlighted: #f4f7fb;
+  --ui-text-toned: #c8d1dd;
+  --ui-text-muted: #9ba7b8;
+  --ui-text-dimmed: #7d899b;
+  --ui-text-inverted: #10202f;
+  --ui-bg: #141c27;
+  --ui-bg-muted: #1a2431;
+  --ui-bg-elevated: #1a2431;
+  --ui-bg-accented: #253141;
+  --ui-border: #253141;
+  --ui-border-muted: #1f2a38;
+  --ui-border-accented: #3a495e;
+  --app-bg: #0d131c;
 }
 
+html {
+  background: var(--app-bg);
+}
 body {
-  @apply bg-(--ui-bg-muted) min-h-dvh;
+  @apply min-h-dvh;
+  font-family: var(--font-sans);
+  background: var(--app-bg);
+  color: var(--ui-text);
+  -webkit-font-smoothing: antialiased;
+}
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 70%, transparent);
+  color: #142338;
 }
 
 /* Money that is owed to you, and money you owe. */
 .pos {
-  color: var(--ui-primary);
+  color: var(--ui-success);
 }
 .neg {
   color: var(--ui-error);

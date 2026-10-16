@@ -38,7 +38,7 @@
     <!-- While you're the only person in the group, the share link is the main call to action. -->
     <GroupLinkCard v-if="!shareButton && tab !== 'people'" :group="group" />
 
-    <!-- An underlined tab bar, so the tabs read as navigation and the only filled green is the Add expense button. -->
+    <!-- An underlined tab bar, so the tabs read as navigation and the only filled primary button is Add expense. -->
     <UTabs
       v-model="tab"
       :items="tabs"
@@ -46,7 +46,7 @@
       variant="link"
       size="lg"
       class="mb-5"
-      :ui="{ list: 'border-accented', trigger: 'grow pb-2.5', leadingIcon: 'hidden sm:inline-flex' }"
+      :ui="{ list: 'border-accented', trigger: 'grow px-1.5 pb-2.5 sm:px-3', leadingIcon: 'hidden sm:inline-flex' }"
       :aria-label="$t('group.sections')"
     />
 
