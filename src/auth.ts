@@ -1,5 +1,6 @@
 import { verifyAccess } from "./access";
 import { audit } from "./audit";
+import { compact, ibanProblem, isBic, MAX_HOLDER_NAME } from "./bank";
 import { requestLang, tr, type Lang } from "./i18n";
 import { HttpError, maskPath, now, randomId, readJson, sha256, text } from "./http";
 
@@ -215,12 +216,51 @@ export async function logout(request: Request, env: Env): Promise<Response> {
   return new Response(null, { status: 204, headers: { "Set-Cookie": sessionCookie("", 0) } });
 }
 
+export type BankDetails = { name: string; iban: string; bic: string };
+
+/** The signed-in user as the front end sees it: with their bank details, or bank: null. */
+export async function me(env: Env, user: User) {
+  const row = await env.DB.prepare("SELECT bank_name, bank_iban, bank_bic FROM users WHERE id = ?")
+    .bind(user.id)
+    .first<{ bank_name: string; bank_iban: string; bank_bic: string }>();
+  const bank: BankDetails | null = row?.bank_iban ? { name: row.bank_name, iban: row.bank_iban, bic: row.bank_bic } : null;
+  return { ...user, bank };
+}
+
 export async function updateProfile(request: Request, env: Env, user: User): Promise<Response> {
   const body = await readJson(request);
   const name = text(body.name, "Name", { max: 60 });
   await env.DB.prepare("UPDATE users SET name = ? WHERE id = ?").bind(name, user.id).run();
   await audit(env, request, user, "user.renamed", { target: user.id, details: { from: user.name, to: name } });
-  return Response.json({ ...user, name });
+  return Response.json(await me(env, { ...user, name }));
+}
+
+const IBAN_ERRORS = {
+  format: "Enter an IBAN, such as BE71 0961 2345 6769",
+  country: "Only IBANs from SEPA countries (the EU, EEA, UK and Switzerland, among others) are supported",
+  length: "This IBAN has the wrong number of characters for its country",
+  checksum: "This IBAN isn't valid. Check it for typos.",
+};
+
+/** Saves the account's bank details. An empty IBAN removes them. */
+export async function updateBank(request: Request, env: Env, user: User): Promise<Response> {
+  const body = await readJson(request);
+  const iban = typeof body.iban === "string" ? compact(body.iban) : "";
+  let bank: BankDetails = { name: "", iban: "", bic: "" };
+  if (iban) {
+    const problem = ibanProblem(iban);
+    if (problem) throw new HttpError(400, IBAN_ERRORS[problem]);
+    const bic = typeof body.bic === "string" ? compact(body.bic) : "";
+    if (bic && !isBic(bic)) throw new HttpError(400, "Enter a BIC of 8 or 11 characters, such as GKCCBEBB, or leave it empty");
+    bank = { name: text(body.name, "Account holder", { max: MAX_HOLDER_NAME }), iban, bic };
+  }
+  await env.DB.prepare("UPDATE users SET bank_name = ?, bank_iban = ?, bank_bic = ? WHERE id = ?")
+    .bind(bank.name, bank.iban, bank.bic, user.id)
+    .run();
+  // The audit log keeps only the country and last digits of the IBAN.
+  const masked = iban ? `${iban.slice(0, 2)}…${iban.slice(-4)}` : null;
+  await audit(env, request, user, iban ? "user.bank_saved" : "user.bank_removed", { target: user.id, details: masked ? { iban: masked } : {} });
+  return Response.json(await me(env, user));
 }
 
 export async function cleanup(env: Env): Promise<void> {

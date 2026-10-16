@@ -4,9 +4,11 @@ import {
   currentUser,
   isAdmin,
   logout,
+  me,
   requireAdmin,
   requireUser,
   startLogin,
+  updateBank,
   updateProfile,
   verifyCode,
   verifyLink,
@@ -28,6 +30,7 @@ import { HttpError } from "./http";
 import { requestLang, tr, type Lang } from "./i18n";
 import { getInvite, getOrCreateGroupLink, joinInvite, resetGroupLink, revokeInvite } from "./invites";
 import { withPageMeta } from "./page-meta";
+import { cancelPayment, confirmPayment, createPayment } from "./payments";
 
 function errorResponse(error: unknown, lang: Lang): Response {
   if (error instanceof HttpError) {
@@ -56,7 +59,7 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (path === "/api/auth/logout" && method === "POST") return logout(request, env);
   if (path === "/api/me" && method === "GET") {
     const user = await currentUser(request, env);
-    return Response.json({ user, isAdmin: isAdmin(env, user) });
+    return Response.json({ user: user && (await me(env, user)), isAdmin: isAdmin(env, user) });
   }
 
   // Invite preview is public so signed-out visitors see what they're joining.
@@ -79,13 +82,14 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
 
   const user = await requireUser(request, env);
   if (path === "/api/me" && method === "PATCH") return updateProfile(request, env, user);
+  if (path === "/api/me/bank" && method === "PUT") return updateBank(request, env, user);
   if (path === "/api/groups") {
     if (method === "GET") return listGroups(env, user);
     if (method === "POST") return createGroup(request, env, user);
   }
   if (m && m[2] && method === "POST") return joinInvite(request, env, user, m[1]);
 
-  m = /^\/api\/groups\/([\w-]+)(?:\/(members|expenses|invites|leave|export\.csv)(?:\/([\w-]+))?)?$/.exec(path);
+  m = /^\/api\/groups\/([\w-]+)(?:\/(members|expenses|payments|invites|leave|export\.csv)(?:\/([\w-]+))?)?$/.exec(path);
   if (m) {
     const [, groupId, sub, itemId] = m;
     switch (`${method} ${sub ?? ""}${itemId ? "/:id" : ""}`) {
@@ -118,6 +122,12 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
         return updateExpense(request, env, user, groupId, itemId);
       case "DELETE expenses/:id":
         return deleteExpense(request, env, user, groupId, itemId);
+      case "POST payments":
+        return createPayment(request, env, user, groupId);
+      case "PATCH payments/:id":
+        return confirmPayment(request, env, user, groupId, itemId);
+      case "DELETE payments/:id":
+        return cancelPayment(request, env, user, groupId, itemId);
     }
   }
   throw new HttpError(404, "Not found");

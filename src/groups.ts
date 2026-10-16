@@ -3,6 +3,7 @@ import type { User } from "./auth";
 import { HttpError, now, optionalText, randomId, readJson, text } from "./http";
 import { requestLang, tr } from "./i18n";
 import { activeGroupLink, insertGroupLink } from "./invites";
+import { listPayments } from "./payments";
 import { balances, settle } from "./split";
 
 export type Group = {
@@ -13,7 +14,15 @@ export type Group = {
   created_by: string;
   created_at: number;
 };
-type MemberRow = { id: string; name: string; user_id: string | null; email: string | null };
+type MemberRow = {
+  id: string;
+  name: string;
+  user_id: string | null;
+  email: string | null;
+  bank_name: string | null;
+  bank_iban: string | null;
+  bank_bic: string | null;
+};
 
 const CURRENCY_RE = /^[A-Z]{3}$/;
 export const MAX_MEMBERS = 50;
@@ -40,7 +49,8 @@ export async function groupForUser(env: Env, groupId: string, user: User): Promi
 
 export async function members(env: Env, groupId: string): Promise<MemberRow[]> {
   const { results } = await env.DB.prepare(
-    `SELECT m.id, m.name, m.user_id, u.email FROM members m LEFT JOIN users u ON u.id = m.user_id
+    `SELECT m.id, m.name, m.user_id, u.email, u.bank_name, u.bank_iban, u.bank_bic
+     FROM members m LEFT JOIN users u ON u.id = m.user_id
      WHERE m.group_id = ? ORDER BY m.created_at, m.name`,
   )
     .bind(groupId)
@@ -101,7 +111,8 @@ export async function listGroups(env: Env, user: User): Promise<Response> {
        COALESCE((SELECT SUM(amount_cents) FROM expenses WHERE group_id = g.id AND kind = 'expense'), 0) AS total,
        COALESCE((SELECT SUM(amount_cents) FROM expenses WHERE paid_by = m.id), 0)
          - COALESCE((SELECT SUM(amount_cents) FROM expense_shares WHERE member_id = m.id), 0) AS my_balance,
-       COALESCE((SELECT MAX(updated_at) FROM expenses WHERE group_id = g.id), g.created_at) AS last_activity
+       COALESCE((SELECT MAX(updated_at) FROM expenses WHERE group_id = g.id), g.created_at) AS last_activity,
+       (SELECT COUNT(*) FROM payments WHERE to_member = m.id AND status = 'sent') AS to_confirm
      FROM groups g JOIN members m ON m.group_id = g.id AND m.user_id = ?
      ORDER BY last_activity DESC`,
   )
@@ -112,11 +123,13 @@ export async function listGroups(env: Env, user: User): Promise<Response> {
 
 export async function getGroup(env: Env, user: User, groupId: string): Promise<Response> {
   const { group, meId } = await groupForUser(env, groupId, user);
-  const [memberRows, expenses, shareToken] = await Promise.all([
+  const [memberRows, expenses, shareToken, payments] = await Promise.all([
     members(env, groupId),
     expensesWithShares(env, groupId),
     activeGroupLink(env, groupId),
+    listPayments(env, groupId),
   ]);
+  const accountOf = new Map(memberRows.map((m) => [m.id, m.user_id]));
   const balanceMap = balances(
     memberRows.map((m) => m.id),
     expenses.map((e) => ({ paidBy: e.paidBy, amount: e.amount, shares: e.shares })),
@@ -131,6 +144,8 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
       isMe: m.id === meId,
       isOwner: m.user_id === group.created_by,
       email: m.email,
+      // Bank details are shared with the people in your groups, so they can pay you back.
+      bank: m.user_id && m.bank_iban ? { name: m.bank_name, iban: m.bank_iban, bic: m.bank_bic } : null,
       balance: balanceMap.get(m.id) ?? 0,
       paid: expenses.filter((e) => e.kind === "expense" && e.paidBy === m.id).reduce((a, e) => a + e.amount, 0),
       spent: expenses
@@ -139,6 +154,17 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
     })),
     expenses,
     settlements: settle(balanceMap),
+    payments: payments.map((p) => ({
+      id: p.id,
+      from: p.from_member,
+      to: p.to_member,
+      amount: p.amount_cents,
+      status: p.status,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+      canConfirm: accountOf.get(p.to_member) === user.id,
+      canCancel: p.status !== "received" && (accountOf.get(p.from_member) === user.id || p.created_by === user.id),
+    })),
   });
 }
 
@@ -206,6 +232,7 @@ export async function deleteGroup(request: Request, env: Env, user: User, groupI
   const { group } = await groupForUser(env, groupId, user);
   if (group.created_by !== user.id) throw new HttpError(403, "Only the person who created the group can delete it");
   await env.DB.batch([
+    env.DB.prepare("DELETE FROM payments WHERE group_id = ?").bind(groupId),
     env.DB.prepare("DELETE FROM expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ?)").bind(groupId),
     env.DB.prepare("DELETE FROM expenses WHERE group_id = ?").bind(groupId),
     env.DB.prepare("DELETE FROM invites WHERE group_id = ?").bind(groupId),
@@ -280,6 +307,8 @@ export async function removeMember(request: Request, env: Env, user: User, group
   await env.DB.batch([
     env.DB.prepare("UPDATE invites SET revoked_at = ? WHERE member_id = ? AND used_at IS NULL AND revoked_at IS NULL").bind(now(), memberId),
     env.DB.prepare("UPDATE invites SET member_id = NULL WHERE member_id = ?").bind(memberId),
+    // Payments they were part of that never completed (completed ones are expenses, checked above).
+    env.DB.prepare("DELETE FROM payments WHERE from_member = ?1 OR to_member = ?1").bind(memberId),
     env.DB.prepare("DELETE FROM members WHERE id = ?").bind(memberId),
   ]);
   await audit(env, request, user, "member.removed", { groupId, target: memberId, details: { name: member.name, hadAccount: Boolean(member.user_id) } });

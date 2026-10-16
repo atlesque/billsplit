@@ -24,6 +24,7 @@
             <span class="min-w-0 flex-1">
               <span class="block truncate font-semibold text-highlighted">{{ g.name }}</span>
               <span class="block text-sm text-muted">{{ peopleCount(g.member_count) }} · {{ $t("groups.spent", { amount: money(g.total, g.currency) }) }}</span>
+              <span v-if="g.to_confirm" class="block text-sm font-semibold text-primary">{{ $t("groups.toConfirm", g.to_confirm) }}</span>
             </span>
             <span class="text-end text-sm font-semibold whitespace-nowrap tabular-nums" :class="tone(g.my_balance)">
               {{

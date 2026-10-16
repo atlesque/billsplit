@@ -85,7 +85,8 @@
     "create": "Create a group",
     "gotLink": "Got a group link from a friend? Open it to join their group.",
     "new": "New group",
-    "spent": "{amount} spent"
+    "spent": "{amount} spent",
+    "toConfirm": "1 payment to confirm | {count} payments to confirm"
   },
   "balance": {
     "settled": "Settled",
@@ -131,13 +132,15 @@
   "balances": {
     "title": "Balances",
     "settleUp": "Settle up",
-    "settleHelp": "Make these payments, then tap “Mark paid” to record them.",
+    "settleHelp": "Tap “Pay” for the bank details and a QR code. A payment counts once the person receiving it confirms it.",
     "youPay": "{you} pay {to}",
     "pays": "{from} pays {to}",
     "markPaid": "Mark paid",
     "allSettled": "Everyone is settled up.",
     "totals": "Totals",
-    "paidShare": "paid {paid} · share {share}"
+    "paidShare": "paid {paid} · share {share}",
+    "pay": "Pay",
+    "markReceived": "Mark received"
   },
   "share": {
     "created": "Group created",
@@ -328,7 +331,9 @@
     },
     "user": {
       "registered": "Account registered",
-      "renamed": "Changed name"
+      "renamed": "Changed name",
+      "bank_saved": "Saved bank details",
+      "bank_removed": "Removed bank details"
     },
     "group": {
       "created": "Created group",
@@ -351,6 +356,74 @@
       "created": "Added expense",
       "updated": "Edited expense",
       "deleted": "Deleted expense"
+    },
+    "payment": {
+      "sent": "Marked payment as sent",
+      "recorded": "Recorded payment",
+      "received": "Confirmed payment received",
+      "not_received": "Marked payment not received",
+      "failed": "Marked payment failed",
+      "cancelled": "Cancelled payment"
+    }
+  },
+  "bank": {
+    "title": "Bank details",
+    "help": "People in your groups see these, so they can pay you back by bank transfer or by scanning a QR code. Only IBANs from SEPA countries in Europe work.",
+    "holder": "Account holder",
+    "iban": "IBAN",
+    "bic": "BIC",
+    "optional": "Optional",
+    "bicHelp": "Only some banks outside your country need it.",
+    "ibanFormat": "Enter an IBAN, such as BE71 0961 2345 6769",
+    "ibanCountry": "Only IBANs from SEPA countries (the EU, EEA, UK and Switzerland, among others) are supported",
+    "ibanLength": "This IBAN has the wrong number of characters for its country",
+    "ibanChecksum": "This IBAN isn't valid. Check it for typos.",
+    "holderRequired": "Enter the name on the account",
+    "bicInvalid": "Enter a BIC of 8 or 11 characters, such as GKCCBEBB, or leave it empty"
+  },
+  "settle": {
+    "title": "Pay {name}",
+    "to": "to {name}",
+    "notOnApp": "{name} doesn't use BillSplit, so there are no bank details to show. Pay them another way, then tap the button below.",
+    "noBank": "{name} hasn't added bank details yet. Ask how they'd like to be paid, then tap the button below once you've sent the money.",
+    "notEuro": "The QR code only works for transfers in euros. This group uses {currency}, so use the bank details below.",
+    "qrLabel": "Bank transfer QR code",
+    "scan": "Scan with your banking app",
+    "scanHelp": "In KBC, ING, Belfius, BNP Paribas Fortis and most other European banking apps, choose to scan a QR code, check the details and confirm.",
+    "copy": "Copy {what}",
+    "copied": "{what} copied",
+    "amount": "Amount",
+    "description": "Description",
+    "sent": "I've sent the money",
+    "confirmNote": "{name} will be asked to confirm the money arrived. It counts toward balances once they do.",
+    "directNote": "{name} doesn't use BillSplit, so it counts right away.",
+    "howToScan": "How to scan"
+  },
+  "payments": {
+    "title": "Payments in progress",
+    "checkHelp": "Check your bank account, then confirm the payments sent to you.",
+    "sentToYou": "{from} sent you {amount}",
+    "youSent": "You sent {amount} to {to}",
+    "sent": "{from} sent {amount} to {to}",
+    "received": "Received",
+    "notReceived": "Not received yet",
+    "failed": "Failed",
+    "dismiss": "Dismiss",
+    "cancel": "Cancel payment",
+    "pending": "Waiting for confirmation",
+    "statusFailed": "Failed",
+    "statusNotReceived": "Not received yet",
+    "statusToConfirm": "To confirm",
+    "statusWaiting": "Waiting for {name}",
+    "recorded": "Payment recorded",
+    "markedSent": "Marked as sent",
+    "record": "Record payment",
+    "recordReceivedConfirm": "Record that {from} paid you {amount}? It counts toward balances right away.",
+    "recordConfirm": "Record that {from} paid {amount} to {to}?",
+    "answered": {
+      "received": "Payment confirmed",
+      "not_received": "Marked as not received yet",
+      "failed": "Marked as failed"
     }
   }
 }

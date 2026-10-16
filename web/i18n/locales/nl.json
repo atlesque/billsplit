@@ -85,7 +85,8 @@
     "create": "Maak een groep",
     "gotLink": "Een groepslink van een vriend gekregen? Open hem om mee te doen in die groep.",
     "new": "Nieuwe groep",
-    "spent": "{amount} uitgegeven"
+    "spent": "{amount} uitgegeven",
+    "toConfirm": "1 betaling te bevestigen | {count} betalingen te bevestigen"
   },
   "balance": {
     "settled": "Verrekend",
@@ -131,13 +132,15 @@
   "balances": {
     "title": "Saldi",
     "settleUp": "Afrekenen",
-    "settleHelp": "Doe deze betalingen en tik daarna op “Betaald” om ze vast te leggen.",
+    "settleHelp": "Tik op “Betalen” voor de bankgegevens en een QR-code. Een betaling telt mee zodra wie het geld krijgt het bevestigt.",
     "youPay": "{you} betaalt {to}",
     "pays": "{from} betaalt {to}",
     "markPaid": "Betaald",
     "allSettled": "Iedereen staat quitte.",
     "totals": "Totalen",
-    "paidShare": "betaald {paid} · aandeel {share}"
+    "paidShare": "betaald {paid} · aandeel {share}",
+    "pay": "Betalen",
+    "markReceived": "Ontvangen"
   },
   "share": {
     "created": "Groep aangemaakt",
@@ -328,7 +331,9 @@
     },
     "user": {
       "registered": "Account geregistreerd",
-      "renamed": "Naam gewijzigd"
+      "renamed": "Naam gewijzigd",
+      "bank_saved": "Bankgegevens opgeslagen",
+      "bank_removed": "Bankgegevens verwijderd"
     },
     "group": {
       "created": "Groep aangemaakt",
@@ -351,6 +356,74 @@
       "created": "Uitgave toegevoegd",
       "updated": "Uitgave bewerkt",
       "deleted": "Uitgave verwijderd"
+    },
+    "payment": {
+      "sent": "Betaling als verstuurd gemarkeerd",
+      "recorded": "Betaling geregistreerd",
+      "received": "Ontvangst van betaling bevestigd",
+      "not_received": "Betaling als niet ontvangen gemarkeerd",
+      "failed": "Betaling als mislukt gemarkeerd",
+      "cancelled": "Betaling geannuleerd"
+    }
+  },
+  "bank": {
+    "title": "Bankgegevens",
+    "help": "Mensen in je groepen zien deze gegevens, zodat ze je kunnen terugbetalen met een overschrijving of door een QR-code te scannen. Alleen IBAN's uit Europese SEPA-landen werken.",
+    "holder": "Rekeninghouder",
+    "iban": "IBAN",
+    "bic": "BIC",
+    "optional": "Optioneel",
+    "bicHelp": "Alleen sommige banken buiten je land hebben dit nodig.",
+    "ibanFormat": "Vul een IBAN in, zoals BE71 0961 2345 6769",
+    "ibanCountry": "Alleen IBAN's uit SEPA-landen (onder meer de EU, de EER, het VK en Zwitserland) worden ondersteund",
+    "ibanLength": "Deze IBAN heeft het verkeerde aantal tekens voor zijn land",
+    "ibanChecksum": "Deze IBAN klopt niet. Controleer hem op tikfouten.",
+    "holderRequired": "Vul de naam op de rekening in",
+    "bicInvalid": "Vul een BIC van 8 of 11 tekens in, zoals GKCCBEBB, of laat het leeg"
+  },
+  "settle": {
+    "title": "{name} betalen",
+    "to": "aan {name}",
+    "notOnApp": "{name} gebruikt BillSplit niet, dus er zijn geen bankgegevens. Betaal op een andere manier en tik daarna op de knop hieronder.",
+    "noBank": "{name} heeft nog geen bankgegevens toegevoegd. Vraag hoe je kunt betalen en tik op de knop hieronder zodra je het geld hebt verstuurd.",
+    "notEuro": "De QR-code werkt alleen voor overschrijvingen in euro. Deze groep gebruikt {currency}, dus gebruik de bankgegevens hieronder.",
+    "qrLabel": "QR-code voor overschrijving",
+    "scan": "Scan met je bankapp",
+    "scanHelp": "Kies in de app van KBC, ING, Belfius, BNP Paribas Fortis en de meeste andere Europese banken voor QR-code scannen, controleer de gegevens en bevestig.",
+    "copy": "{what} kopiëren",
+    "copied": "{what} gekopieerd",
+    "amount": "Bedrag",
+    "description": "Mededeling",
+    "sent": "Ik heb het geld verstuurd",
+    "confirmNote": "{name} krijgt de vraag om te bevestigen dat het geld is aangekomen. Pas dan telt het mee in de saldi.",
+    "directNote": "{name} gebruikt BillSplit niet, dus het telt meteen mee.",
+    "howToScan": "Hoe scan je dit?"
+  },
+  "payments": {
+    "title": "Lopende betalingen",
+    "checkHelp": "Kijk op je bankrekening en bevestig dan de betalingen aan jou.",
+    "sentToYou": "{from} heeft je {amount} gestuurd",
+    "youSent": "Je hebt {amount} gestuurd aan {to}",
+    "sent": "{from} heeft {amount} gestuurd aan {to}",
+    "received": "Ontvangen",
+    "notReceived": "Nog niet ontvangen",
+    "failed": "Mislukt",
+    "dismiss": "Verbergen",
+    "cancel": "Betaling annuleren",
+    "pending": "Wacht op bevestiging",
+    "statusFailed": "Mislukt",
+    "statusNotReceived": "Nog niet ontvangen",
+    "statusToConfirm": "Te bevestigen",
+    "statusWaiting": "Wacht op {name}",
+    "recorded": "Betaling geregistreerd",
+    "markedSent": "Gemarkeerd als verstuurd",
+    "record": "Betaling registreren",
+    "recordReceivedConfirm": "Registreren dat {from} je {amount} heeft betaald? Het telt meteen mee in de saldi.",
+    "recordConfirm": "Registreren dat {from} {amount} heeft betaald aan {to}?",
+    "answered": {
+      "received": "Betaling bevestigd",
+      "not_received": "Gemarkeerd als nog niet ontvangen",
+      "failed": "Gemarkeerd als mislukt"
     }
   }
 }
