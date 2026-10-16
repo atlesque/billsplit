@@ -1,7 +1,8 @@
 <template>
   <UModal :title="title" :description="description" :close="false" :dismissible="true" @update:open="(open) => !open && emit('close', false)">
-    <template #body>
-      <UFormField v-if="requireText" :label="textLabel">
+    <!-- Only confirmations that ask for typed text have a body; otherwise it would be an empty row. -->
+    <template v-if="requireText" #body>
+      <UFormField :label="textLabel">
         <UInput v-model="typed" class="w-full" autofocus @keydown.enter="confirm" />
       </UFormField>
     </template>
