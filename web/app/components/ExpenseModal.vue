@@ -1,8 +1,39 @@
 <template>
   <UModal :title="heading" :ui="{ content: 'sm:max-w-xl' }">
     <template #body>
-      <p v-if="readOnly" class="mb-4 text-sm text-muted">{{ $t("expense.readOnly") }}</p>
-      <UForm id="expense-form" :state="form" :disabled="readOnly" class="space-y-4" @submit="submit">
+      <!-- Someone else's expense: just the details, no fields. -->
+      <div v-if="readOnly" class="space-y-4">
+        <div>
+          <p class="text-lg font-semibold text-highlighted">{{ expenseTitle(expense!) }}</p>
+          <p class="text-2xl font-semibold text-highlighted tabular-nums">{{ money(expense!.amount, cur) }}</p>
+        </div>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+          <dt class="text-muted">{{ $t("expense.date") }}</dt>
+          <dd class="text-default">{{ formatDate(expense!.date) }}</dd>
+          <dt class="text-muted">{{ $t(transfer ? "expense.from" : "expense.paidBy") }}</dt>
+          <dd class="text-default">{{ name(expense!.paidBy) }}</dd>
+          <template v-if="transfer">
+            <dt class="text-muted">{{ $t("expense.to") }}</dt>
+            <dd class="text-default">{{ name(expense!.shares[0]?.memberId) }}</dd>
+          </template>
+          <template v-else-if="expense!.category">
+            <dt class="text-muted">{{ $t("expense.category") }}</dt>
+            <dd class="text-default">{{ categoryLabel(expense!.category) }}</dd>
+          </template>
+        </dl>
+        <div v-if="!transfer">
+          <p class="text-sm font-medium text-default">{{ $t("expense.splitBetween") }} · {{ modes.find((m) => m.value === mode)?.label }}</p>
+          <ul class="mt-1 divide-y divide-default">
+            <li v-for="s in expense!.shares" :key="s.memberId" class="flex min-h-10 items-center gap-3 py-1.5 text-sm">
+              <span class="min-w-0 flex-1 truncate text-default">{{ name(s.memberId) }}</span>
+              <span v-if="mode === 'shares'" class="text-muted">{{ $t("expense.sharesCount", s.weight) }}</span>
+              <span class="w-24 text-end text-default tabular-nums">{{ money(s.amount ?? preview.get(s.memberId) ?? 0, cur) }}</span>
+            </li>
+          </ul>
+        </div>
+        <p class="text-sm text-muted">{{ $t("expense.readOnly") }}</p>
+      </div>
+      <UForm v-else id="expense-form" :state="form" class="space-y-4" @submit="submit">
         <UTabs v-model="kind" :items="kinds" :content="false" size="sm" :aria-label="$t('expense.type')" />
 
         <UFormField v-if="!transfer" :label="$t('expense.what')" name="title">
@@ -98,8 +129,8 @@ const emit = defineEmits<{ close: [changed: boolean] }>();
 const { t } = useI18n();
 const api = useApi();
 const toast = useToast();
-const { money, amountInput, amountField } = useFormat();
-const { label, expenseTitle, categoryLabel } = useMemberNames(() => props.data);
+const { money, formatDate, amountInput, amountField } = useFormat();
+const { name, label, expenseTitle, categoryLabel } = useMemberNames(() => props.data);
 const confirmModal = useOverlay().create(ConfirmModal);
 
 const NO_CATEGORY = "-";
@@ -109,7 +140,7 @@ const cur = props.data.group.currency;
 const expense = props.expense;
 // "Mark paid" opens a prefilled payment that is still a new one.
 const isEdit = Boolean(expense?.id) && !props.fromTemplate;
-// Someone else's expense opens read-only; the server refuses changes too.
+// Someone else's expense opens as read-only details; the server refuses changes too.
 const readOnly = isEdit && expense?.canEdit === false;
 
 const kind = ref<Expense["kind"]>(expense?.kind ?? "expense");
@@ -136,13 +167,13 @@ const busy = ref(false);
 
 const heading = computed(() => t(`expense.${readOnly ? "view" : isEdit ? "edit" : "add"}${transfer.value ? "Payment" : "Expense"}`));
 const kinds = computed(() => [
-  { label: t("expense.expense"), value: "expense", disabled: readOnly },
-  { label: t("expense.transfer"), value: "transfer", disabled: readOnly },
+  { label: t("expense.expense"), value: "expense" },
+  { label: t("expense.transfer"), value: "transfer" },
 ]);
 const modes = computed(() => [
-  { label: t("expense.equally"), value: "equal", disabled: readOnly },
-  { label: t("expense.byShares"), value: "shares", disabled: readOnly },
-  { label: t("expense.byAmount"), value: "amounts", disabled: readOnly },
+  { label: t("expense.equally"), value: "equal" },
+  { label: t("expense.byShares"), value: "shares" },
+  { label: t("expense.byAmount"), value: "amounts" },
 ]);
 const memberItems = computed(() => members.map((m) => ({ label: label(m), value: m.id })));
 const categoryItems = computed(() => {

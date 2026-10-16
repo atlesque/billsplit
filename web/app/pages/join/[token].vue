@@ -8,7 +8,14 @@
     <h1 class="text-2xl font-bold break-words text-highlighted">{{ invite.group.name }}</h1>
     <p v-if="invite.group.description" class="mt-1 text-muted">{{ invite.group.description }}</p>
 
-    <div v-if="invite.status !== 'active'" class="mt-4">
+    <div v-if="invite.status === 'locked'" class="mt-4">
+      <p class="mb-4"><strong>{{ $t("invite.lockedTitle") }}</strong> {{ $t("invite.lockedHelp") }}</p>
+      <!-- People already in the group can still sign in; this page then takes them to it. -->
+      <SignInForm v-if="!me" :next="`/join/${token}`" :title="$t('invite.memberSignIn')" />
+      <UButton v-else to="/" color="neutral" variant="outline" :label="$t('invite.home')" />
+    </div>
+
+    <div v-else-if="invite.status !== 'active'" class="mt-4">
       <p class="mb-4"><strong>{{ $t("invite.deadTitle") }}</strong> {{ $t("invite.deadHelp") }}</p>
       <UButton to="/" color="neutral" variant="outline" :label="$t('invite.home')" />
     </div>

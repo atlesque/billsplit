@@ -39,14 +39,16 @@
     "copied": "Link copied",
     "copy": "Copy link",
     "share": "Share…",
-    "reset": "Reset link",
     "groupLink": "Group link",
-    "resetConfirm": "Reset the group link? The current link stops working, and you'll need to share the new one.",
-    "resetDone": "New link created",
     "shareText": "Join \"{name}\" on BillSplit to split expenses",
     "inviteTitle": "Invite people to {name}",
     "inviteHelp": "Share this link in your group chat. Anyone who opens it can sign in or create an account, then join this group.",
-    "ownerOnly": "Only the group owner can share the invite link."
+    "ownerOnly": "Only the group owner can share the invite link.",
+    "lock": "Lock group",
+    "lockHelp": "Nobody new can join while the group is locked. People already in it are not affected.",
+    "lockedHelp": "This group is locked, so nobody new can join through this link.",
+    "lockedDone": "Group locked",
+    "unlockedDone": "Group unlocked"
   },
   "account": {
     "admin": "Admin",
@@ -208,6 +210,7 @@
     "equally": "Equally",
     "byShares": "By shares",
     "byAmount": "By amount",
+    "sharesCount": "{n} share | {n} shares",
     "sharesFor": "Shares for {name}",
     "amountFor": "Amount for {name}",
     "allAssigned": "All {amount} assigned.",
@@ -245,7 +248,10 @@
     "join": "Join group",
     "joined": "You joined the group",
     "deadTitle": "This link no longer works.",
-    "deadHelp": "Ask the group for the current link."
+    "deadHelp": "Ask the group for the current link.",
+    "lockedTitle": "This group is locked.",
+    "lockedHelp": "Nobody new can join it right now. Ask the group owner to unlock it.",
+    "memberSignIn": "Already in this group? Sign in"
   },
   "admin": {
     "title": "Admin",
@@ -351,7 +357,9 @@
     "group": {
       "created": "Created group",
       "updated": "Updated group",
-      "deleted": "Deleted group"
+      "deleted": "Deleted group",
+      "locked": "Locked group",
+      "unlocked": "Unlocked group"
     },
     "member": {
       "added": "Added person",
@@ -410,7 +418,16 @@
     "sent": "I've sent the money",
     "confirmNote": "{name} will be asked to confirm the money arrived. It counts toward balances once they do.",
     "directNote": "{name} doesn't use BillSplit, so it counts right away.",
-    "howToScan": "How to scan"
+    "howToScan": "How to scan",
+    "openBankApp": "Open in banking app",
+    "openBankAppHelp": "Pick your banking app in the menu that opens. Most European banking apps read the QR code from the image and fill in the transfer for you.",
+    "saveQr": "Save QR code for your banking app",
+    "saveQrHelp": "Then open your banking app, choose to scan a QR code and pick the saved image.",
+    "shareFailed": "Couldn't open the share menu. Use the payment details below.",
+    "payByHand": "Or enter the payment details yourself",
+    "showQr": "Show QR code anyway",
+    "hideQr": "Hide QR code",
+    "showQrHelp": "Scan this with your banking app on another phone."
   },
   "payments": {
     "title": "Payments in progress",
