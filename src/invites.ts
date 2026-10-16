@@ -1,6 +1,6 @@
 import { audit } from "./audit";
 import { currentUser, type User } from "./auth";
-import { groupForUser, insertMember, members } from "./groups";
+import { insertMember, members, requireGroupManager } from "./groups";
 import { HttpError, now, randomId, readJson, text } from "./http";
 import { inviteStatus, type InviteRow } from "./invite-status";
 
@@ -30,9 +30,9 @@ export async function activeGroupLink(env: Env, groupId: string): Promise<string
   return row?.token ?? null;
 }
 
-/** Returns the group's share link, creating one if the group has none. Any member can share it. */
+/** Returns the group's share link, creating one if the group has none. Only the group owner (or an admin) can see it. */
 export async function getOrCreateGroupLink(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
-  await groupForUser(env, groupId, user);
+  await requireGroupManager(env, groupId, user);
   const existing = await activeGroupLink(env, groupId);
   if (existing) return Response.json({ token: existing });
   const { id, token } = await insertGroupLink(env, groupId, user.id);
@@ -40,10 +40,9 @@ export async function getOrCreateGroupLink(request: Request, env: Env, user: Use
   return Response.json({ token }, { status: 201 });
 }
 
-/** Replaces the share link: the old link stops working. Only the group's creator can do this. */
+/** Replaces the share link: the old link stops working. Only the group owner (or an admin) can do this. */
 export async function resetGroupLink(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
-  const { group } = await groupForUser(env, groupId, user);
-  if (group.created_by !== user.id) throw new HttpError(403, "Only the person who created the group can reset its link");
+  await requireGroupManager(env, groupId, user);
   await env.DB.prepare("UPDATE invites SET revoked_at = ? WHERE group_id = ? AND multi_use = 1 AND revoked_at IS NULL")
     .bind(now(), groupId)
     .run();
@@ -54,7 +53,7 @@ export async function resetGroupLink(request: Request, env: Env, user: User, gro
 
 /** Cancels an unused personal (single-use) link from before group links existed. */
 export async function revokeInvite(request: Request, env: Env, user: User, groupId: string, inviteId: string) {
-  await groupForUser(env, groupId, user);
+  await requireGroupManager(env, groupId, user);
   const res = await env.DB.prepare(
     "UPDATE invites SET revoked_at = ? WHERE id = ? AND group_id = ? AND multi_use = 0 AND used_at IS NULL AND revoked_at IS NULL",
   )

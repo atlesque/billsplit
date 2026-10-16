@@ -12,7 +12,7 @@
       </div>
       <!-- From two people on, the share link moves from the big card to this button. -->
       <UButton
-        v-if="shareButton"
+        v-if="shareButton && group.canManage"
         icon="i-lucide-share-2"
         color="neutral"
         variant="outline"
@@ -36,7 +36,7 @@
     </div>
 
     <!-- While you're the only person in the group, the share link is the main call to action. -->
-    <GroupLinkCard v-if="!shareButton && tab !== 'people'" :group="group" />
+    <GroupLinkCard v-if="!shareButton && tab !== 'people' && group.canManage" :group="group" />
 
     <!-- An underlined tab bar, so the tabs read as navigation and the only filled primary button is Add expense. -->
     <UTabs

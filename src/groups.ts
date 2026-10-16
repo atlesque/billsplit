@@ -47,6 +47,33 @@ export async function groupForUser(env: Env, groupId: string, user: User): Promi
   return { group, meId: me_id };
 }
 
+/** Group settings and the share link belong to the group's owner (its creator); admins can manage them too. */
+export function canManageGroup(env: Env, user: User, group: Group): boolean {
+  return group.created_by === user.id || isAdmin(env, user);
+}
+
+export async function requireGroupManager(env: Env, groupId: string, user: User) {
+  const found = await groupForUser(env, groupId, user);
+  if (!canManageGroup(env, user, found.group)) throw new HttpError(403, "Only the group owner can do this");
+  return found;
+}
+
+/**
+ * Who may change or delete an expense: whoever added it, the group owner, or an admin.
+ * Expenses whose creator no longer has an account fall back to the payer's account.
+ */
+export function canEditExpense(
+  env: Env,
+  user: User,
+  group: Group,
+  expense: { created_by: string | null; paid_by: string },
+  accountOf: (memberId: string) => string | null | undefined,
+): boolean {
+  if (canManageGroup(env, user, group)) return true;
+  const owner = expense.created_by ?? accountOf(expense.paid_by);
+  return owner === user.id;
+}
+
 export async function members(env: Env, groupId: string): Promise<MemberRow[]> {
   const { results } = await env.DB.prepare(
     `SELECT m.id, m.name, m.user_id, u.email, u.bank_name, u.bank_iban, u.bank_bic
@@ -67,6 +94,7 @@ type ExpenseRow = {
   spent_on: string;
   category: string;
   split_mode: string;
+  created_by: string | null;
   created_at: number;
   updated_at: number;
 };
@@ -75,7 +103,7 @@ type ShareRow = { expense_id: string; member_id: string; weight: number; amount_
 async function expensesWithShares(env: Env, groupId: string) {
   const [expenses, shares] = await env.DB.batch([
     env.DB.prepare(
-      `SELECT id, kind, title, amount_cents, paid_by, spent_on, category, split_mode, created_at, updated_at
+      `SELECT id, kind, title, amount_cents, paid_by, spent_on, category, split_mode, created_by, created_at, updated_at
        FROM expenses WHERE group_id = ? ORDER BY spent_on DESC, created_at DESC`,
     ).bind(groupId),
     env.DB.prepare(
@@ -98,6 +126,7 @@ async function expensesWithShares(env: Env, groupId: string) {
     date: e.spent_on,
     category: e.category,
     splitMode: e.split_mode,
+    createdBy: e.created_by,
     createdAt: e.created_at,
     updatedAt: e.updated_at,
     shares: (byExpense.get(e.id) ?? []).map((s) => ({ memberId: s.member_id, weight: s.weight, amount: s.amount_cents })),
@@ -132,12 +161,14 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
   const accountOf = new Map(memberRows.map((m) => [m.id, m.user_id]));
   // Other people's email addresses are private; only admins see them.
   const seesEmails = isAdmin(env, user);
+  const canManage = canManageGroup(env, user, group);
   const balanceMap = balances(
     memberRows.map((m) => m.id),
     expenses.map((e) => ({ paidBy: e.paidBy, amount: e.amount, shares: e.shares })),
   );
   return Response.json({
-    group: { ...group, isOwner: group.created_by === user.id, shareToken },
+    // Only the owner (and admins) see the share link.
+    group: { ...group, isOwner: group.created_by === user.id, canManage, shareToken: canManage ? shareToken : null },
     meId,
     members: memberRows.map((m) => ({
       id: m.id,
@@ -154,7 +185,10 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
         .filter((e) => e.kind === "expense")
         .reduce((a, e) => a + (e.shares.find((s) => s.memberId === m.id)?.amount ?? 0), 0),
     })),
-    expenses,
+    expenses: expenses.map(({ createdBy, ...e }) => ({
+      ...e,
+      canEdit: canEditExpense(env, user, group, { created_by: createdBy, paid_by: e.paidBy }, (id) => accountOf.get(id)),
+    })),
     settlements: settle(balanceMap),
     payments: payments.map((p) => ({
       id: p.id,
@@ -214,7 +248,7 @@ export async function createGroup(request: Request, env: Env, user: User): Promi
 }
 
 export async function updateGroup(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
-  const { group } = await groupForUser(env, groupId, user);
+  const { group } = await requireGroupManager(env, groupId, user);
   const body = await readJson(request);
   const name = body.name === undefined ? group.name : text(body.name, "Group name", { max: 80 });
   const description = body.description === undefined ? group.description : optionalText(body.description, "Description", 300);

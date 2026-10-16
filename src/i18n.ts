@@ -49,7 +49,9 @@ const nl: Record<string, string> = {
   "Use “Leave group” to remove yourself": "Gebruik “Groep verlaten” om jezelf te verwijderen",
   "Cross-origin request refused": "Verzoek van een ander domein geweigerd",
   "Method not allowed": "Methode niet toegestaan",
-  "Only the person who created the group can reset its link": "Alleen wie de groep heeft gemaakt, kan de link resetten",
+  "Only the group owner can do this": "Alleen de eigenaar van de groep kan dit doen",
+  "Only the person who added this, the group owner or an admin can change it":
+    "Alleen wie dit heeft toegevoegd, de eigenaar van de groep of een beheerder kan dit wijzigen",
   "This invite can no longer be cancelled": "Deze uitnodiging kan niet meer worden ingetrokken",
   "This link doesn't exist. Check the link or ask the group for it again.": "Deze link bestaat niet. Controleer de link of vraag de groep er opnieuw om.",
   "This link no longer works. Ask the group for the current link.": "Deze link werkt niet meer. Vraag de groep om de huidige link.",

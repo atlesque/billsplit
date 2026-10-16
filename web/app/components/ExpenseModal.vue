@@ -1,7 +1,8 @@
 <template>
   <UModal :title="heading" :ui="{ content: 'sm:max-w-xl' }">
     <template #body>
-      <UForm id="expense-form" :state="form" class="space-y-4" @submit="submit">
+      <p v-if="readOnly" class="mb-4 text-sm text-muted">{{ $t("expense.readOnly") }}</p>
+      <UForm id="expense-form" :state="form" :disabled="readOnly" class="space-y-4" @submit="submit">
         <UTabs v-model="kind" :items="kinds" :content="false" size="sm" :aria-label="$t('expense.type')" />
 
         <UFormField v-if="!transfer" :label="$t('expense.what')" name="title">
@@ -78,7 +79,10 @@
       </UForm>
     </template>
     <template #footer>
-      <div class="flex w-full flex-wrap gap-2">
+      <div v-if="readOnly" class="flex w-full justify-end">
+        <UButton color="neutral" variant="outline" :label="$t('action.close')" @click="emit('close', false)" />
+      </div>
+      <div v-else class="flex w-full flex-wrap gap-2">
         <UButton type="submit" form="expense-form" class="flex-1 justify-center" :label="$t(isEdit ? 'action.save' : 'action.add')" :loading="busy" />
         <UButton v-if="isEdit" color="error" variant="outline" :label="$t('action.delete')" @click="remove" />
         <UButton color="neutral" variant="ghost" :label="$t('action.cancel')" @click="emit('close', false)" />
@@ -106,6 +110,8 @@ const cur = props.data.group.currency;
 const expense = props.expense;
 // "Mark paid" opens a prefilled payment that is still a new one.
 const isEdit = Boolean(expense?.id) && !props.fromTemplate;
+// Someone else's expense opens read-only; the server refuses changes too.
+const readOnly = isEdit && expense?.canEdit === false;
 
 const kind = ref<Expense["kind"]>(expense?.kind ?? "expense");
 const transfer = computed(() => kind.value === "transfer");
@@ -129,15 +135,15 @@ const form = reactive({
 const error = ref("");
 const busy = ref(false);
 
-const heading = computed(() => t(`expense.${isEdit ? "edit" : "add"}${transfer.value ? "Payment" : "Expense"}`));
+const heading = computed(() => t(`expense.${readOnly ? "view" : isEdit ? "edit" : "add"}${transfer.value ? "Payment" : "Expense"}`));
 const kinds = computed(() => [
-  { label: t("expense.expense"), value: "expense" },
-  { label: t("expense.transfer"), value: "transfer" },
+  { label: t("expense.expense"), value: "expense", disabled: readOnly },
+  { label: t("expense.transfer"), value: "transfer", disabled: readOnly },
 ]);
 const modes = computed(() => [
-  { label: t("expense.equally"), value: "equal" },
-  { label: t("expense.byShares"), value: "shares" },
-  { label: t("expense.byAmount"), value: "amounts" },
+  { label: t("expense.equally"), value: "equal", disabled: readOnly },
+  { label: t("expense.byShares"), value: "shares", disabled: readOnly },
+  { label: t("expense.byAmount"), value: "amounts", disabled: readOnly },
 ]);
 const memberItems = computed(() => members.map((m) => ({ label: label(m), value: m.id })));
 const categoryItems = computed(() => {

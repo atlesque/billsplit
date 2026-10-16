@@ -45,7 +45,8 @@
     "resetDone": "New link created",
     "shareText": "Join \"{name}\" on BillSplit to split expenses",
     "inviteTitle": "Invite people to {name}",
-    "inviteHelp": "Share this link in your group chat. Anyone who opens it can sign in or create an account, then join this group."
+    "inviteHelp": "Share this link in your group chat. Anyone who opens it can sign in or create an account, then join this group.",
+    "ownerOnly": "Only the group owner can share the invite link."
   },
   "account": {
     "admin": "Admin",
@@ -168,6 +169,7 @@
     "details": "Group details",
     "export": "Export",
     "exportHelp": "Download all expenses with each person's share.",
+    "ownerOnly": "Only the group owner can change these details.",
     "downloadCsv": "Download CSV",
     "leaveOrDelete": "Leave or delete",
     "leaveHelp": "Leaving keeps your expenses in the group.",
@@ -185,6 +187,9 @@
     "editExpense": "Edit expense",
     "addPayment": "Add payment",
     "editPayment": "Edit payment",
+    "viewExpense": "Expense",
+    "viewPayment": "Payment",
+    "readOnly": "Only the person who added this, the group owner or an admin can change it.",
     "type": "Type",
     "expense": "Expense",
     "transfer": "Payment between people",

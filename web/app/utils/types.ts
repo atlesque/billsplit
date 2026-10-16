@@ -30,6 +30,8 @@ export interface Group {
   currency: string;
   description: string;
   isOwner: boolean;
+  /** The owner or an admin: may change the group's details and see or reset its share link. */
+  canManage: boolean;
   shareToken: string | null;
 }
 
@@ -64,6 +66,8 @@ export interface Expense {
   category?: string;
   splitMode: SplitMode;
   shares: Share[];
+  /** Whoever added it, the group owner or an admin. Missing on a new or prefilled expense. */
+  canEdit?: boolean;
 }
 
 export interface Settlement {

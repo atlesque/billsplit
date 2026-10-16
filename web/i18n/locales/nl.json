@@ -45,7 +45,8 @@
     "resetDone": "Nieuwe link aangemaakt",
     "shareText": "Doe mee met \"{name}\" op BillSplit om uitgaven te verdelen",
     "inviteTitle": "Nodig mensen uit voor {name}",
-    "inviteHelp": "Deel deze link in je groepsapp. Iedereen die hem opent, kan inloggen of een account aanmaken en daarna meedoen in deze groep."
+    "inviteHelp": "Deel deze link in je groepsapp. Iedereen die hem opent, kan inloggen of een account aanmaken en daarna meedoen in deze groep.",
+    "ownerOnly": "Alleen de eigenaar van de groep kan de uitnodigingslink delen."
   },
   "account": {
     "admin": "Beheer",
@@ -168,6 +169,7 @@
     "details": "Groepsgegevens",
     "export": "Exporteren",
     "exportHelp": "Download alle uitgaven met het aandeel van iedere persoon.",
+    "ownerOnly": "Alleen de eigenaar van de groep kan deze gegevens wijzigen.",
     "downloadCsv": "CSV downloaden",
     "leaveOrDelete": "Verlaten of verwijderen",
     "leaveHelp": "Als je de groep verlaat, blijven je uitgaven erin staan.",
@@ -185,6 +187,9 @@
     "editExpense": "Uitgave bewerken",
     "addPayment": "Betaling toevoegen",
     "editPayment": "Betaling bewerken",
+    "viewExpense": "Uitgave",
+    "viewPayment": "Betaling",
+    "readOnly": "Alleen wie dit heeft toegevoegd, de eigenaar van de groep of een beheerder kan dit wijzigen.",
     "type": "Soort",
     "expense": "Uitgave",
     "transfer": "Betaling tussen personen",
