@@ -208,6 +208,8 @@
     "allAssigned": "All {amount} assigned.",
     "leftToAssign": "{amount} left to assign.",
     "tooMuch": "{amount} too much assigned.",
+    "assignedSoFar": "{amount} assigned so far.",
+    "setTotal": "Set total to {amount}",
     "splitCount": "Split between 1 person. | Split between {count} people.",
     "pickOne": "Pick at least one person.",
     "invalidAmount": "Enter a valid amount",
