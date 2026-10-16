@@ -44,7 +44,7 @@ const nl: Record<string, string> = {
   'There is already someone called "{name}" in this group': 'Er zit al iemand met de naam "{name}" in deze groep',
   "{name} is in some expenses. Remove them from those expenses first.": "{name} staat in een of meer uitgaven. Haal deze persoon daar eerst uit.",
   "Currency must be a 3-letter code such as EUR": "Valuta moet een code van 3 letters zijn, zoals EUR",
-  "Only the person who created the group can delete it": "Alleen wie de groep heeft gemaakt, kan hem verwijderen",
+  "Only the group owner or an admin can delete it": "Alleen de eigenaar van de groep of een beheerder kan hem verwijderen",
   "Person not found": "Persoon niet gevonden",
   "Use “Leave group” to remove yourself": "Gebruik “Groep verlaten” om jezelf te verwijderen",
   "Cross-origin request refused": "Verzoek van een ander domein geweigerd",

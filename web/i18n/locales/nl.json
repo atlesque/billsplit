@@ -210,6 +210,7 @@
     "equally": "Gelijk",
     "byShares": "Naar delen",
     "byAmount": "Per bedrag",
+    "sharesCount": "{n} deel | {n} delen",
     "sharesFor": "Delen voor {name}",
     "amountFor": "Bedrag voor {name}",
     "allAssigned": "Heel {amount} is verdeeld.",

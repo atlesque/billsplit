@@ -278,7 +278,7 @@ export async function setGroupLocked(request: Request, env: Env, user: User, gro
 
 export async function deleteGroup(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
   const { group } = await groupForUser(env, groupId, user);
-  if (group.created_by !== user.id) throw new HttpError(403, "Only the person who created the group can delete it");
+  if (!canManageGroup(env, user, group)) throw new HttpError(403, "Only the group owner or an admin can delete it");
   await env.DB.batch([
     env.DB.prepare("DELETE FROM payments WHERE group_id = ?").bind(groupId),
     env.DB.prepare("DELETE FROM expense_shares WHERE expense_id IN (SELECT id FROM expenses WHERE group_id = ?)").bind(groupId),
