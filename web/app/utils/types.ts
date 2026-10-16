@@ -30,8 +30,10 @@ export interface Group {
   currency: string;
   description: string;
   isOwner: boolean;
-  /** The owner or an admin: may change the group's details and see or reset its share link. */
+  /** The owner or an admin: may change the group's details, see its share link and lock the group. */
   canManage: boolean;
+  /** Nobody new can join while the group is locked. */
+  locked: boolean;
   shareToken: string | null;
 }
 

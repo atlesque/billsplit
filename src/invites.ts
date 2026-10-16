@@ -4,7 +4,7 @@ import { insertMember, members, requireGroupManager } from "./groups";
 import { HttpError, now, randomId, readJson, text } from "./http";
 import { inviteStatus, type InviteRow } from "./invite-status";
 
-// Group share links don't expire on their own; resetting the link is how you end one.
+// Group share links don't expire or change; locking the group is how you stop people joining.
 const NEVER = 253402300799000;
 
 /** Inserts a new share link for the group and returns its token. */
@@ -40,17 +40,6 @@ export async function getOrCreateGroupLink(request: Request, env: Env, user: Use
   return Response.json({ token }, { status: 201 });
 }
 
-/** Replaces the share link: the old link stops working. Only the group owner (or an admin) can do this. */
-export async function resetGroupLink(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
-  await requireGroupManager(env, groupId, user);
-  await env.DB.prepare("UPDATE invites SET revoked_at = ? WHERE group_id = ? AND multi_use = 1 AND revoked_at IS NULL")
-    .bind(now(), groupId)
-    .run();
-  const { id, token } = await insertGroupLink(env, groupId, user.id);
-  await audit(env, request, user, "invite.reset", { groupId, target: id });
-  return Response.json({ token }, { status: 201 });
-}
-
 /** Cancels an unused personal (single-use) link from before group links existed. */
 export async function revokeInvite(request: Request, env: Env, user: User, groupId: string, inviteId: string) {
   await requireGroupManager(env, groupId, user);
@@ -64,11 +53,17 @@ export async function revokeInvite(request: Request, env: Env, user: User, group
   return new Response(null, { status: 204 });
 }
 
-type FullInvite = InviteRow & { multi_use: number; group_name: string; group_description: string; inviter: string | null };
+type FullInvite = InviteRow & {
+  multi_use: number;
+  group_name: string;
+  group_description: string;
+  group_locked_at: number | null;
+  inviter: string | null;
+};
 
 async function inviteByToken(env: Env, token: string): Promise<FullInvite> {
   const invite = await env.DB.prepare(
-    `SELECT i.*, g.name AS group_name, g.description AS group_description, u.name AS inviter
+    `SELECT i.*, g.name AS group_name, g.description AS group_description, g.locked_at AS group_locked_at, u.name AS inviter
      FROM invites i JOIN groups g ON g.id = i.group_id LEFT JOIN users u ON u.id = i.created_by
      WHERE i.token = ?`,
   )
@@ -82,7 +77,8 @@ async function inviteByToken(env: Env, token: string): Promise<FullInvite> {
 export async function getInvite(request: Request, env: Env, token: string): Promise<Response> {
   const invite = await inviteByToken(env, token);
   const user = await currentUser(request, env);
-  const status = inviteStatus(invite);
+  // A locked group turns every link away, whatever state the link itself is in.
+  const status = invite.group_locked_at ? "locked" : inviteStatus(invite);
   const base = {
     status,
     group: { name: invite.group_name, description: invite.group_description },
@@ -114,6 +110,7 @@ export async function joinInvite(request: Request, env: Env, user: User, token: 
   const mine = await env.DB.prepare("SELECT id FROM members WHERE group_id = ? AND user_id = ?").bind(invite.group_id, user.id).first();
   if (mine) return Response.json({ id: invite.group_id });
 
+  if (invite.group_locked_at) throw new HttpError(403, "This group is locked, so nobody new can join. Ask the group owner to unlock it.");
   const status = inviteStatus(invite);
   if (status !== "active") {
     throw new HttpError(410, "This link no longer works. Ask the group for the current link.");
