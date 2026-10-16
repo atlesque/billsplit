@@ -418,7 +418,16 @@
     "sent": "Ik heb het geld verstuurd",
     "confirmNote": "{name} krijgt de vraag om te bevestigen dat het geld is aangekomen. Pas dan telt het mee in de saldi.",
     "directNote": "{name} gebruikt BillSplit niet, dus het telt meteen mee.",
-    "howToScan": "Hoe scan je dit?"
+    "howToScan": "Hoe scan je dit?",
+    "openBankApp": "Openen in bankapp",
+    "openBankAppHelp": "Kies je bankapp in het menu dat opent. De meeste Europese bankapps lezen de QR-code uit de afbeelding en vullen de overschrijving voor je in.",
+    "saveQr": "QR-code bewaren voor je bankapp",
+    "saveQrHelp": "Open daarna je bankapp, kies voor QR-code scannen en selecteer de bewaarde afbeelding.",
+    "shareFailed": "Het deelmenu kon niet openen. Gebruik de betaalgegevens hieronder.",
+    "payByHand": "Of vul de betaalgegevens zelf in",
+    "showQr": "QR-code toch tonen",
+    "hideQr": "QR-code verbergen",
+    "showQrHelp": "Scan deze met de bankapp op een andere telefoon."
   },
   "payments": {
     "title": "Lopende betalingen",
