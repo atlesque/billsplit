@@ -66,7 +66,7 @@ Every push to `main` deploys production and then staging (`pnpm run deploy` runs
 There is no email sign-in on staging. Signing in opens a test sign-in page with a dropdown of every test user; pick one and you are signed in as them. "Switch test user" in the account dialog goes back to it. Three things keep this off production:
 
 - It only runs when the var `STAGING` is `"true"`, which only the staging environment sets (`test/staging.test.ts` fails if production ever does).
-- With `STAGING` on, the Worker refuses every request without a valid Cloudflare Access assertion for the staging Access application, and refuses everything while `ACCESS_AUD` is empty.
+- With `STAGING` on, the Worker refuses every request without a valid Cloudflare Access assertion for the staging Access application, and refuses everything while `ACCESS_AUD` is empty. The Access application ("BillSplit staging") covers the whole hostname and only allows Alex's email.
 - It only signs in accounts on the reserved `.test` domain, which can never receive a sign-in email, so no real account can be reached this way.
 
 To try staging locally, run `pnpm db:staging:local` (migrations and mock data), then `pnpm build && pnpm exec wrangler dev --env staging` with `DEV_DISABLE_ACCESS=true` in `.dev.vars`.

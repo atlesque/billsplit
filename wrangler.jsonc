@@ -74,7 +74,7 @@
         // and turns on the test-user sign-in (src/mock-auth.ts) in place of email sign-in.
         "STAGING": "true",
         "ACCESS_TEAM_DOMAIN": "https://atlesque.cloudflareaccess.com",
-        "ACCESS_AUD": ""
+        "ACCESS_AUD": "7846cbfbe310bbdc58c39d751d18e6eef15e96d4ee6f24d566af33f15f0c043d"
       }
     }
   }
