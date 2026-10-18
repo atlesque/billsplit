@@ -75,6 +75,17 @@
     "newLink": "Nieuwe link aanvragen",
     "toJoin": "Log in om mee te doen"
   },
+  "testLogin": {
+    "staging": "Staging",
+    "title": "Testlogin",
+    "intro": "Dit is de stagingsite. Log in als een van de testgebruikers.",
+    "help": "Kies een testgebruiker om mee in te loggen. Dit werkt alleen op staging.",
+    "user": "Testgebruiker",
+    "pick": "Kies een testgebruiker",
+    "search": "Zoek op naam of e-mail",
+    "noName": "Nog geen naam",
+    "switch": "Andere testgebruiker"
+  },
   "name": {
     "created": "Account aangemaakt",
     "title": "Hoe heet je?",

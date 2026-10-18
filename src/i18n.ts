@@ -19,6 +19,8 @@ const nl: Record<string, string> = {
   "User not found": "Gebruiker niet gevonden",
   "Group not found": "Groep niet gevonden",
   "Please sign in": "Log in om verder te gaan",
+  "Test user": "Testgebruiker",
+  "Pick one of the test users": "Kies een van de testgebruikers",
   "This Cloudflare Access identity is not an admin": "Deze Cloudflare Access-identiteit is geen beheerder",
   "Enter a valid email address": "Vul een geldig e-mailadres in",
   "Too many sign-in emails. Wait a few minutes and try again.": "Te veel inlogmails. Wacht een paar minuten en probeer het opnieuw.",

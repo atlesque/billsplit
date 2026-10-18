@@ -75,6 +75,17 @@
     "newLink": "Request a new link",
     "toJoin": "Sign in to join"
   },
+  "testLogin": {
+    "staging": "Staging",
+    "title": "Test sign-in",
+    "intro": "This is the staging site. Sign in as one of the test users.",
+    "help": "Pick a test user to sign in as. This only works on staging.",
+    "user": "Test user",
+    "pick": "Choose a test user",
+    "search": "Search by name or email",
+    "noName": "No name yet",
+    "switch": "Switch test user"
+  },
   "name": {
     "created": "Account created",
     "title": "What's your name?",

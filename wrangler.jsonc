@@ -47,5 +47,35 @@
     // ACCESS_AUD is its "Application Audience (AUD) Tag". While either is empty, the admin API is off.
     "ACCESS_TEAM_DOMAIN": "https://atlesque.cloudflareaccess.com",
     "ACCESS_AUD": "d82a929380375d717916a317f95da8833f1812682581367600bff7441fc4e0f6"
+  },
+
+  // Staging: the Worker "billsplit-staging" on staging.billsplit.atlesque.dev, deployed from main
+  // alongside production (`pnpm run deploy`). It has its own database and bucket, seeded with mock
+  // data (seed/staging.sql), and no email sending. Bindings and vars are not inherited from above.
+  "env": {
+    "staging": {
+      "routes": [{ "pattern": "staging.billsplit.atlesque.dev", "custom_domain": true }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "billsplit-staging",
+          "database_id": "1a8fb185-f20f-4ada-98af-4e3493e9cf3c",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "FILES", "bucket_name": "billsplit-staging-attachments" }],
+      "vars": {
+        "APP_URL": "https://staging.billsplit.atlesque.dev",
+        "EMAIL_FROM": "billsplit@atlesque.dev",
+        "ADMIN_EMAILS": "alex@billsplit.test,alexander@atlesque.media",
+
+        // A Cloudflare Access application covers the whole staging hostname. STAGING makes the
+        // Worker check its assertion on every request (and fail closed while ACCESS_AUD is empty),
+        // and turns on the test-user sign-in (src/mock-auth.ts) in place of email sign-in.
+        "STAGING": "true",
+        "ACCESS_TEAM_DOMAIN": "https://atlesque.cloudflareaccess.com",
+        "ACCESS_AUD": "7846cbfbe310bbdc58c39d751d18e6eef15e96d4ee6f24d566af33f15f0c043d"
+      }
+    }
   }
 }

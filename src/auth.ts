@@ -65,12 +65,14 @@ export async function requireAdmin(request: Request, env: Env): Promise<User> {
   return user;
 }
 
-function safeNext(value: unknown): string {
+export function safeNext(value: unknown): string {
   // Only same-origin app paths, never protocol-relative URLs.
   return typeof value === "string" && /^\/(?!\/)[\w\-/.?=&%]*$/.test(value) ? value : "/";
 }
 
 export async function startLogin(request: Request, env: Env): Promise<Response> {
+  // Staging has no email sending; people sign in as a test user there (src/mock-auth.ts).
+  if (env.STAGING === "true" || !env.EMAIL) throw new HttpError(404, "Not found");
   const body = await readJson(request);
   const email = text(body.email, "Email", { max: 254 }).toLowerCase();
   if (!EMAIL_RE.test(email)) throw new HttpError(400, "Enter a valid email address");
@@ -154,17 +156,27 @@ async function completeLogin(request: Request, env: Env, row: LoginRow, method: 
     .run();
   const user = await env.DB.prepare("SELECT id, email, name FROM users WHERE email = ?").bind(row.email).first<User>();
   if (!user) throw new HttpError(500, "Could not create account");
-  await env.DB.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").bind(now(), user.id).run();
   const isNew = created.meta.changes > 0;
   if (isNew) await audit(env, request, user, "user.registered", { target: user.id });
-  await audit(env, request, user, "auth.signed_in", { target: row.id, details: { method } });
+  return startSession(request, env, user, { target: row.id, method, isNew, next: row.next_path });
+}
+
+/** Signs the user in: records the sign-in and sets a new session cookie. */
+export async function startSession(
+  request: Request,
+  env: Env,
+  user: User,
+  { target, method, isNew, next }: { target: string; method: string; isNew: boolean; next: string },
+): Promise<Response> {
+  await env.DB.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").bind(now(), user.id).run();
+  await audit(env, request, user, "auth.signed_in", { target, details: { method } });
 
   const token = randomId(32);
   await env.DB.prepare("INSERT INTO sessions (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)")
     .bind(await sha256(token), user.id, now() + SESSION_TTL, now())
     .run();
   return Response.json(
-    { user, isAdmin: isAdmin(env, user), isNew, next: row.next_path },
+    { user, isAdmin: isAdmin(env, user), isNew, next },
     { headers: { "Set-Cookie": sessionCookie(token, SESSION_TTL / 1000) } },
   );
 }

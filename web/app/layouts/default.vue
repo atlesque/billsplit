@@ -5,6 +5,7 @@
         <NuxtLink to="/" class="flex items-center gap-2.5 text-[1.05rem] font-bold tracking-tight text-highlighted">
           <img src="/icon.svg" alt="" width="28" height="28" />
           <span>BillSplit<span class="text-secondary">.</span></span>
+          <UBadge v-if="staging" :label="$t('testLogin.staging')" color="warning" variant="subtle" size="sm" />
         </NuxtLink>
         <div class="flex min-w-0 items-center gap-1.5">
           <LanguageSwitcher />
@@ -37,7 +38,7 @@
 import { AccountModal } from "#components";
 
 const route = useRoute();
-const { me, isAdmin } = useSession();
+const { me, isAdmin, staging } = useSession();
 const overlay = useOverlay();
 const accountModal = overlay.create(AccountModal);
 const openAccount = () => accountModal.open();
@@ -47,7 +48,7 @@ const wide = computed(() => route.path.startsWith("/admin"));
 // Which screen to show: sign-in links and invite pages work signed out; everything else
 // needs a session, and a first sign-in asks for a name before anything else.
 const gate = computed(() => {
-  if (route.path === "/signin") return "page";
+  if (route.path === "/signin" || route.path === "/test-login") return "page";
   if (route.path.startsWith("/join/") && (!me.value || me.value.name)) return "page";
   if (!me.value) return "signin";
   if (!me.value.name) return "name";
