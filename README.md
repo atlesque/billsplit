@@ -57,13 +57,27 @@ pnpm typecheck   # Worker (tsc) and front end (vue-tsc)
 pnpm build       # front end into web/.output/public
 ```
 
+## Staging
+
+**Staging:** https://staging.billsplit.atlesque.dev, behind Cloudflare Access.
+
+Every push to `main` deploys production and then staging (`pnpm run deploy` runs `deploy:staging` last). Staging is the Worker `billsplit-staging` (the `staging` environment in `wrangler.jsonc`) with its own D1 database (`billsplit-staging`) and R2 bucket (`billsplit-staging-attachments`). Each deploy applies the migrations to the staging database and then `seed/staging.sql`, which puts back any missing mock data: five test users, three groups (one locked, one archived), expenses in every split mode and a payment waiting to be confirmed. `alex@billsplit.test` is an admin on staging.
+
+There is no email sign-in on staging. Signing in opens a test sign-in page with a dropdown of every test user; pick one and you are signed in as them. "Switch test user" in the account dialog goes back to it. Three things keep this off production:
+
+- It only runs when the var `STAGING` is `"true"`, which only the staging environment sets (`test/staging.test.ts` fails if production ever does).
+- With `STAGING` on, the Worker refuses every request without a valid Cloudflare Access assertion for the staging Access application, and refuses everything while `ACCESS_AUD` is empty.
+- It only signs in accounts on the reserved `.test` domain, which can never receive a sign-in email, so no real account can be reached this way.
+
+To try staging locally, run `pnpm db:staging:local` (migrations and mock data), then `pnpm build && pnpm exec wrangler dev --env staging` with `DEV_DISABLE_ACCESS=true` in `.dev.vars`.
+
 ## Deploying your own
 
 1. `pnpm exec wrangler d1 create billsplit` and put the returned `database_id` in `wrangler.jsonc`. Create the attachments bucket with `pnpm exec wrangler r2 bucket create billsplit-attachments`.
 2. Onboard your sending domain to Cloudflare Email Sending (`pnpm exec wrangler email sending enable example.com`).
 3. In `wrangler.jsonc`, set the `routes` pattern, `APP_URL`, `EMAIL_FROM` (an address on that domain), and `ADMIN_EMAILS`.
 4. Create a Cloudflare Access self-hosted application with destinations `<host>/admin` and `<host>/api/admin`, then set `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` (the application's AUD tag). For local dev, `.dev.vars` can set `DEV_DISABLE_ACCESS=true` while `ACCESS_AUD` is empty.
-5. `pnpm run deploy` builds the front end, applies the D1 migrations and deploys the Worker.
+5. `pnpm run deploy` builds the front end, applies the D1 migrations and deploys the Worker, then does the same for staging. Without a staging setup, deploy production alone with `pnpm exec wrangler d1 migrations apply DB --remote && pnpm exec wrangler deploy`.
 
 ## License
 

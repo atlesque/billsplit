@@ -13,6 +13,7 @@ import {
   verifyCode,
   verifyLink,
 } from "./auth";
+import { verifyAccess } from "./access";
 import { addAttachment, deleteAttachment, getAttachment, removeStaleAttachments } from "./attachments";
 import { createExpense, deleteExpense, updateExpense } from "./expenses";
 import {
@@ -34,6 +35,7 @@ import {
 import { HttpError } from "./http";
 import { requestLang, tr, type Lang } from "./i18n";
 import { getInvite, getOrCreateGroupLink, joinInvite, revokeInvite } from "./invites";
+import { isStaging, listTestUsers, mockSignIn } from "./mock-auth";
 import { withPageMeta } from "./page-meta";
 import { cancelPayment, confirmPayment, createPayment } from "./payments";
 
@@ -64,9 +66,11 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (path === "/api/auth/verify" && method === "POST") return verifyCode(request, env);
   if (path === "/api/auth/link" && method === "POST") return verifyLink(request, env);
   if (path === "/api/auth/logout" && method === "POST") return logout(request, env);
+  if (path === "/api/auth/test-users" && method === "GET") return listTestUsers(request, env);
+  if (path === "/api/auth/test-user" && method === "POST") return mockSignIn(request, env);
   if (path === "/api/me" && method === "GET") {
     const user = await currentUser(request, env);
-    return Response.json({ user: user && (await me(env, user)), isAdmin: isAdmin(env, user) });
+    return Response.json({ user: user && (await me(env, user)), isAdmin: isAdmin(env, user), staging: isStaging(env) });
   }
 
   // Invite preview is public so signed-out visitors see what they're joining.
@@ -161,6 +165,15 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
 export default {
   async fetch(request, env): Promise<Response> {
     const url = new URL(request.url);
+    // Staging sits behind Cloudflare Access; the Worker checks the assertion too, so it stays
+    // closed if Access is missing or misconfigured.
+    if (isStaging(env)) {
+      try {
+        await verifyAccess(request, env);
+      } catch (error) {
+        return errorResponse(error, requestLang(request));
+      }
+    }
     if (!url.pathname.startsWith("/api/")) return withPageMeta(await env.ASSETS.fetch(request), env.APP_URL, url.pathname);
     try {
       const response = await route(request, env, url);

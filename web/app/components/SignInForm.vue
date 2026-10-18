@@ -1,6 +1,16 @@
 <template>
+  <!-- Staging: sign in as a test user instead. -->
+  <div v-if="staging" class="space-y-4">
+    <div>
+      <h2 class="text-lg font-semibold text-highlighted">{{ title ?? $t("signin.title") }}</h2>
+      <p class="mt-1 text-sm text-muted">{{ $t("testLogin.intro") }}</p>
+    </div>
+    <!-- A full page load: the layout only renders the page once its route has loaded. -->
+    <UButton block size="lg" :label="button ?? $t('action.continue')" :href="`/test-login?next=${encodeURIComponent(next)}`" external />
+  </div>
+
   <!-- Step 1: email. One flow for new and existing accounts. -->
-  <UForm v-if="!sent" :state="state" class="space-y-4" @submit="start">
+  <UForm v-else-if="!sent" :state="state" class="space-y-4" @submit="start">
     <div>
       <h2 class="text-lg font-semibold text-highlighted">{{ title ?? $t("signin.title") }}</h2>
       <p class="mt-1 text-sm text-muted">{{ $t("signin.intro") }}</p>
@@ -36,7 +46,7 @@ const props = defineProps<{ next?: string; title?: string; button?: string }>();
 const { t } = useI18n();
 const api = useApi();
 const toast = useToast();
-const { signedIn } = useSession();
+const { signedIn, staging } = useSession();
 
 const state = reactive({ email: "" });
 const code = ref<(number | undefined)[]>([]);

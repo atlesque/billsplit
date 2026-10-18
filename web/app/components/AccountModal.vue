@@ -24,6 +24,7 @@
         <p v-if="error" class="text-sm text-error">{{ error }}</p>
         <div class="flex flex-wrap gap-2">
           <UButton type="submit" :label="$t('action.save')" :loading="busy" />
+          <UButton v-if="staging" color="neutral" variant="outline" :label="$t('testLogin.switch')" to="/test-login" @click="emit('close')" />
           <UButton color="error" variant="outline" :label="$t('account.signOut')" @click="logout" />
         </div>
       </UForm>
@@ -38,7 +39,7 @@ const emit = defineEmits<{ close: [] }>();
 const { t } = useI18n();
 const api = useApi();
 const toast = useToast();
-const { me, signedOut } = useSession();
+const { me, staging, signedOut } = useSession();
 const bank = me.value?.bank;
 const state = reactive({
   name: me.value?.name ?? "",
