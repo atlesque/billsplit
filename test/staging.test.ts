@@ -49,3 +49,10 @@ test("the staging seed applies on top of the migrations, twice", () => {
     .all();
   assert.deepEqual(off, []);
 });
+
+test("the staging deploy is not forced onto the production Worker", () => {
+  // Workers Builds sets WRANGLER_CI_OVERRIDE_NAME to the connected (production) Worker for every
+  // `wrangler deploy` in the build, which would put the staging config on production.
+  const { scripts } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.match(scripts["deploy:staging"], /env -u WRANGLER_CI_OVERRIDE_NAME -u WRANGLER_CI_MATCH_TAG wrangler deploy --env staging/);
+});

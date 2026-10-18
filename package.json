@@ -9,7 +9,7 @@
     "dev": "nuxt generate web && wrangler dev",
     "dev:web": "nuxt dev web",
     "deploy": "nuxt generate web && wrangler d1 migrations apply DB --remote && wrangler deploy && pnpm run deploy:staging",
-    "deploy:staging": "wrangler d1 migrations apply DB --remote --env staging && pnpm run db:seed:staging && wrangler deploy --env staging",
+    "deploy:staging": "wrangler d1 migrations apply DB --remote --env staging && pnpm run db:seed:staging && env -u WRANGLER_CI_OVERRIDE_NAME -u WRANGLER_CI_MATCH_TAG wrangler deploy --env staging",
     "postinstall": "nuxt prepare web",
     "typecheck": "tsc --noEmit && nuxt typecheck web",
     "types": "wrangler types --strict-vars=false",
