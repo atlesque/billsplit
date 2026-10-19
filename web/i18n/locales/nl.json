@@ -435,7 +435,7 @@
     "openBankApp": "Openen in bankapp",
     "shareFailed": "Het deelmenu kon niet openen. Gebruik de betaalgegevens hieronder.",
     "payByHand": "Of vul de betaalgegevens zelf in",
-    "showQr": "QR-code toch tonen",
+    "showQr": "QR-code tonen",
     "hideQr": "QR-code verbergen",
     "showQrHelp": "Scan deze met de bankapp op een andere telefoon.",
     "chooseBankHelp": "Kies je bank. BillSplit kopieert het IBAN en opent de app via de App Store of Play Store: tik daar op Openen, plak het IBAN en vul het bedrag in.",

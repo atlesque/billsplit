@@ -435,7 +435,7 @@
     "openBankApp": "Open in banking app",
     "shareFailed": "Couldn't open the share menu. Use the payment details below.",
     "payByHand": "Or enter the payment details yourself",
-    "showQr": "Show QR code anyway",
+    "showQr": "Show QR code",
     "hideQr": "Hide QR code",
     "showQrHelp": "Scan this with your banking app on another phone.",
     "chooseBankHelp": "Pick your bank. BillSplit copies the IBAN, then opens the app through the App Store or Play Store: tap Open there, paste the IBAN and enter the amount.",
