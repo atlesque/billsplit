@@ -121,6 +121,7 @@
     "description": "Beschrijving"
   },
   "tab": {
+    "overview": "Overzicht",
     "expenses": "Uitgaven",
     "balances": "Saldi",
     "people": "Mensen",
@@ -478,9 +479,7 @@
     "lent": "schoot {amount} voor",
     "owes": "moet {amount} betalen",
     "gave": "gaf {amount}",
-    "received": "ontving {amount}",
-    "ctaOwe": "Betaal wat je nog moet",
-    "ctaOwed": "Reken af wat je nog krijgt"
+    "received": "ontving {amount}"
   },
   "attachments": {
     "title": "Bijlagen",
@@ -506,5 +505,17 @@
     "reopenHelp": "Na heropenen kan iedereen weer uitgaven toevoegen en wijzigen.",
     "reopened": "Groep heropend",
     "section": "Gearchiveerd"
+  },
+  "overview": {
+    "pay": "Betalen",
+    "waiting": "Betaling verstuurd",
+    "to": "Aan {name}",
+    "from": "Van {name}",
+    "oweNothing": "Je hoeft niets te betalen",
+    "view": "Bekijken",
+    "confirm": "Bevestigen",
+    "toConfirm": "1 betaling te bevestigen | {count} betalingen te bevestigen",
+    "expenseCount": "Nog geen uitgaven | 1 uitgave | {count} uitgaven",
+    "viewExpenses": "Uitgaven bekijken"
   }
 }

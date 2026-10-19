@@ -121,6 +121,7 @@
     "description": "Description"
   },
   "tab": {
+    "overview": "Overview",
     "expenses": "Expenses",
     "balances": "Balances",
     "people": "People",
@@ -478,9 +479,7 @@
     "lent": "lent {amount}",
     "owes": "owes {amount}",
     "gave": "gave {amount}",
-    "received": "received {amount}",
-    "ctaOwe": "Pay what you owe",
-    "ctaOwed": "Settle what you're owed"
+    "received": "received {amount}"
   },
   "attachments": {
     "title": "Attachments",
@@ -506,5 +505,17 @@
     "reopenHelp": "Reopening lets people add and change expenses again.",
     "reopened": "Group reopened",
     "section": "Archived"
+  },
+  "overview": {
+    "pay": "Pay",
+    "waiting": "Payment sent",
+    "to": "To {name}",
+    "from": "From {name}",
+    "oweNothing": "You owe nothing",
+    "view": "View",
+    "confirm": "Confirm",
+    "toConfirm": "1 payment to confirm | {count} payments to confirm",
+    "expenseCount": "No expenses yet | 1 expense | {count} expenses",
+    "viewExpenses": "View expenses"
   }
 }
