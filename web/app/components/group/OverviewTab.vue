@@ -1,53 +1,62 @@
 <template>
   <div class="space-y-3">
-    <!-- What you owe comes first, and the whole card is the way to pay it. -->
-    <button v-if="mine.balance < 0" type="button" :class="[card, 'ring-error/40 bg-error/5 hover:bg-error/10']" @click="emit('person', mine.id)">
-      <span class="flex items-start gap-3">
-        <span class="min-w-0 flex-1">
-          <span class="block text-sm text-muted">{{ $t("balance.owe") }}</span>
-          <span class="block text-2xl font-bold tabular-nums text-error">{{ money(-mine.balance, cur) }}</span>
+    <!-- What you owe and what you're owed get a card each, side by side from sm up so both always read at a glance. -->
+    <div class="grid gap-3 sm:grid-cols-2">
+      <!-- What you owe comes first, and the whole card is the way to pay it. -->
+      <button v-if="mine.balance < 0" type="button" :class="[card, 'ring-error/40 bg-error/5 hover:bg-error/10']" @click="emit('person', mine.id)">
+        <span class="flex items-start gap-3">
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm text-muted">{{ $t("balance.owe") }}</span>
+            <span class="block text-2xl font-bold tabular-nums text-error">{{ money(-mine.balance, cur) }}</span>
+          </span>
+          <span v-if="toPay.every((s) => s.pending)" class="mt-1 shrink-0 text-sm text-muted">{{ $t("overview.waiting") }}</span>
+          <span v-else class="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md bg-error px-3 py-1.5 text-sm font-semibold text-inverted">
+            {{ $t("overview.pay") }}
+            <UIcon name="i-lucide-chevron-right" class="size-4" />
+          </span>
         </span>
-        <span v-if="toPay.every((s) => s.pending)" class="mt-1 shrink-0 text-sm text-muted">{{ $t("overview.waiting") }}</span>
-        <span v-else class="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md bg-error px-3 py-1.5 text-sm font-semibold text-inverted">
-          {{ $t("overview.pay") }}
-          <UIcon name="i-lucide-chevron-right" class="size-4" />
-        </span>
-      </span>
-      <ul v-if="toPay.length" class="mt-3 space-y-1 border-t border-error/20 pt-3 text-sm">
-        <li v-for="s in toPay" :key="s.to" class="flex items-center gap-2">
-          <span class="min-w-0 flex-1 truncate">{{ $t("overview.to", { name: name(s.to, { object: true }) }) }}</span>
-          <UBadge v-if="s.pending" color="neutral" variant="subtle" size="sm" :label="$t('payments.pending')" />
-          <span class="font-semibold tabular-nums">{{ money(s.amount, cur) }}</span>
-        </li>
-      </ul>
-    </button>
-    <!-- Owing nothing is still worth saying, so it reads as an answer and not as a missing card. -->
-    <div v-else :class="[card, 'flex items-center gap-3']">
-      <UIcon name="i-lucide-circle-check" class="size-5 shrink-0 text-muted" />
-      <span class="font-semibold text-highlighted">{{ $t("overview.oweNothing") }}</span>
-    </div>
+        <ul v-if="toPay.length" class="mt-3 space-y-1 border-t border-error/20 pt-3 text-sm">
+          <li v-for="s in toPay" :key="s.to" class="flex items-center gap-2">
+            <span class="min-w-0 flex-1 truncate">{{ $t("overview.to", { name: name(s.to, { object: true }) }) }}</span>
+            <UBadge v-if="s.pending" color="neutral" variant="subtle" size="sm" :label="$t('payments.pending')" />
+            <span class="font-semibold tabular-nums">{{ money(s.amount, cur) }}</span>
+          </li>
+        </ul>
+      </button>
+      <!-- Owing nothing is still worth saying, so it reads as an answer and not as a missing card. -->
+      <div v-else :class="card">
+        <span class="block text-sm text-muted">{{ $t("balance.owe") }}</span>
+        <span class="block text-2xl font-bold tabular-nums text-muted">{{ money(0, cur) }}</span>
+        <span class="mt-1 flex items-center gap-1.5 text-sm text-muted"><UIcon name="i-lucide-circle-check" class="size-4 shrink-0" />{{ $t("overview.oweNothing") }}</span>
+      </div>
 
-    <!-- What others owe you, with the payments they say they sent waiting for you to confirm. Hidden when nobody owes you. -->
-    <button v-if="mine.balance > 0 || paymentsToConfirm" type="button" :class="[card, 'ring-success/40 bg-success/5 hover:bg-success/10']" @click="emit('person', mine.id)">
-      <span class="flex items-start gap-3">
-        <span class="min-w-0 flex-1">
-          <span class="block text-sm text-muted">{{ $t("balance.owed") }}</span>
-          <span class="block text-2xl font-bold tabular-nums text-success">{{ money(Math.max(mine.balance, 0), cur) }}</span>
+      <!-- What others owe you, in green, with the payments they say they sent waiting for you to confirm. -->
+      <button v-if="mine.balance > 0 || paymentsToConfirm" type="button" :class="[card, 'ring-success/40 bg-success/5 hover:bg-success/10']" @click="emit('person', mine.id)">
+        <span class="flex items-start gap-3">
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm text-muted">{{ $t("balance.owed") }}</span>
+            <span class="block text-2xl font-bold tabular-nums text-success">{{ money(Math.max(mine.balance, 0), cur) }}</span>
+          </span>
+          <span class="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md bg-success/15 px-3 py-1.5 text-sm font-semibold text-success">
+            {{ $t(paymentsToConfirm ? "overview.confirm" : "overview.view") }}
+            <UIcon name="i-lucide-chevron-right" class="size-4" />
+          </span>
         </span>
-        <span class="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md bg-success/15 px-3 py-1.5 text-sm font-semibold text-success">
-          {{ $t(paymentsToConfirm ? "overview.confirm" : "overview.view") }}
-          <UIcon name="i-lucide-chevron-right" class="size-4" />
-        </span>
-      </span>
-      <p v-if="paymentsToConfirm" class="mt-2 text-sm font-semibold text-highlighted">{{ $t("overview.toConfirm", paymentsToConfirm) }}</p>
-      <ul v-if="toReceive.length" class="mt-3 space-y-1 border-t border-success/20 pt-3 text-sm">
-        <li v-for="s in toReceive" :key="s.from" class="flex items-center gap-2">
-          <span class="min-w-0 flex-1 truncate">{{ $t("overview.from", { name: name(s.from, { object: true }) }) }}</span>
-          <UBadge v-if="s.pending" color="neutral" variant="subtle" size="sm" :label="$t('payments.statusToConfirm')" />
-          <span class="font-semibold tabular-nums">{{ money(s.amount, cur) }}</span>
-        </li>
-      </ul>
-    </button>
+        <p v-if="paymentsToConfirm" class="mt-2 text-sm font-semibold text-highlighted">{{ $t("overview.toConfirm", paymentsToConfirm) }}</p>
+        <ul v-if="toReceive.length" class="mt-3 space-y-1 border-t border-success/20 pt-3 text-sm">
+          <li v-for="s in toReceive" :key="s.from" class="flex items-center gap-2">
+            <span class="min-w-0 flex-1 truncate">{{ $t("overview.from", { name: name(s.from, { object: true }) }) }}</span>
+            <UBadge v-if="s.pending" color="neutral" variant="subtle" size="sm" :label="$t('payments.statusToConfirm')" />
+            <span class="font-semibold tabular-nums">{{ money(s.amount, cur) }}</span>
+          </li>
+        </ul>
+      </button>
+      <div v-else :class="card">
+        <span class="block text-sm text-muted">{{ $t("balance.owed") }}</span>
+        <span class="block text-2xl font-bold tabular-nums text-muted">{{ money(0, cur) }}</span>
+        <span class="mt-1 flex items-center gap-1.5 text-sm text-muted"><UIcon name="i-lucide-circle-check" class="size-4 shrink-0" />{{ $t("overview.owedNothing") }}</span>
+      </div>
+    </div>
 
     <!-- The group's total leads to its expenses. -->
     <button type="button" :class="[card, 'flex items-center gap-3 hover:bg-elevated/60']" @click="emit('expenses')">

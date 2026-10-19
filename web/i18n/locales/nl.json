@@ -512,6 +512,7 @@
     "to": "Aan {name}",
     "from": "Van {name}",
     "oweNothing": "Je hoeft niets te betalen",
+    "owedNothing": "Niemand hoeft jou iets te betalen",
     "view": "Bekijken",
     "confirm": "Bevestigen",
     "toConfirm": "1 betaling te bevestigen | {count} betalingen te bevestigen",

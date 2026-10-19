@@ -512,6 +512,7 @@
     "to": "To {name}",
     "from": "From {name}",
     "oweNothing": "You owe nothing",
+    "owedNothing": "Nobody owes you anything",
     "view": "View",
     "confirm": "Confirm",
     "toConfirm": "1 payment to confirm | {count} payments to confirm",
