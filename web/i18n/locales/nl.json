@@ -433,14 +433,14 @@
     "directNote": "{name} gebruikt BillSplit niet, dus het telt meteen mee.",
     "howToScan": "Hoe scan je dit?",
     "openBankApp": "Openen in bankapp",
-    "openBankAppHelp": "Kies je bankapp in het menu dat opent. De meeste Europese bankapps lezen de QR-code uit de afbeelding en vullen de overschrijving voor je in.",
-    "saveQr": "QR-code bewaren voor je bankapp",
-    "saveQrHelp": "Open daarna je bankapp, kies voor QR-code scannen en selecteer de bewaarde afbeelding.",
     "shareFailed": "Het deelmenu kon niet openen. Gebruik de betaalgegevens hieronder.",
     "payByHand": "Of vul de betaalgegevens zelf in",
-    "showQr": "QR-code toch tonen",
+    "showQr": "QR-code tonen",
     "hideQr": "QR-code verbergen",
-    "showQrHelp": "Scan deze met de bankapp op een andere telefoon."
+    "showQrHelp": "Scan deze met de bankapp op een andere telefoon.",
+    "chooseBankHelp": "Kies je bank. BillSplit kopieert het IBAN en opent de app via de App Store of Play Store: tik daar op Openen, plak het IBAN en vul het bedrag in.",
+    "ibanCopied": "IBAN gekopieerd. Plak het in {bank}.",
+    "shareQr": "QR-code delen met je bankapp"
   },
   "payments": {
     "title": "Lopende betalingen",

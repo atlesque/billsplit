@@ -433,14 +433,14 @@
     "directNote": "{name} doesn't use BillSplit, so it counts right away.",
     "howToScan": "How to scan",
     "openBankApp": "Open in banking app",
-    "openBankAppHelp": "Pick your banking app in the menu that opens. Most European banking apps read the QR code from the image and fill in the transfer for you.",
-    "saveQr": "Save QR code for your banking app",
-    "saveQrHelp": "Then open your banking app, choose to scan a QR code and pick the saved image.",
     "shareFailed": "Couldn't open the share menu. Use the payment details below.",
     "payByHand": "Or enter the payment details yourself",
-    "showQr": "Show QR code anyway",
+    "showQr": "Show QR code",
     "hideQr": "Hide QR code",
-    "showQrHelp": "Scan this with your banking app on another phone."
+    "showQrHelp": "Scan this with your banking app on another phone.",
+    "chooseBankHelp": "Pick your bank. BillSplit copies the IBAN, then opens the app through the App Store or Play Store: tap Open there, paste the IBAN and enter the amount.",
+    "ibanCopied": "IBAN copied. Paste it in {bank}.",
+    "shareQr": "Share the QR code with your bank app instead"
   },
   "payments": {
     "title": "Payments in progress",
