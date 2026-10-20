@@ -432,8 +432,9 @@
     "confirmNote": "{name} krijgt de vraag om te bevestigen dat het geld is aangekomen. Pas dan telt het mee in de saldi.",
     "directNote": "{name} gebruikt BillSplit niet, dus het telt meteen mee.",
     "howToScan": "Hoe scan je dit?",
-    "orScan": "Of scan de QR-code",
-    "scanOtherPhone": "Scan de code met de bankapp op een andere telefoon."
+    "scanOtherPhone": "Scan de code met de bankapp op een andere telefoon.",
+    "showQr": "QR-code tonen",
+    "hideQr": "QR-code verbergen"
   },
   "payments": {
     "title": "Lopende betalingen",

@@ -15,12 +15,24 @@
         :description="$t('settle.notEuro', { currency: cur })"
       />
 
-      <!-- Desktop puts the QR code first, to scan with a phone. A phone can't scan its own screen, so there the details come first. -->
+      <!-- Desktop puts the QR code first, to scan with a phone. A phone can't scan its own screen, so there the details come first and the QR code waits behind a toggle. -->
       <div v-if="bank" class="flex flex-col gap-5 sm:gap-4">
         <div v-if="euro" class="order-last flex flex-col gap-2 sm:order-first">
-          <p class="text-sm font-semibold text-highlighted sm:hidden">{{ $t("settle.orScan") }}</p>
-          <QrCode :value="qrPayload" :label="$t('settle.qrLabel')" class="w-60 max-w-full shrink-0 ring-1 ring-default sm:w-52" />
-          <p class="text-sm text-muted sm:hidden">{{ $t("settle.scanOtherPhone") }}</p>
+          <UButton
+            block
+            size="lg"
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-qr-code"
+            :trailing-icon="showQr ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
+            :ui="{ trailingIcon: 'ms-auto' }"
+            :label="$t(showQr ? 'settle.hideQr' : 'settle.showQr')"
+            :aria-expanded="showQr"
+            class="sm:hidden"
+            @click="showQr = !showQr"
+          />
+          <QrCode :value="qrPayload" :label="$t('settle.qrLabel')" class="w-60 max-w-full shrink-0 ring-1 ring-default sm:w-52" :class="{ 'max-sm:hidden': !showQr }" />
+          <p v-if="showQr" class="text-sm text-muted sm:hidden">{{ $t("settle.scanOtherPhone") }}</p>
           <p class="hidden font-semibold text-highlighted sm:block">
             {{ $t("settle.scan") }}
             <UPopover :content="{ side: 'top' }">
@@ -94,6 +106,8 @@ const rows = computed(() => {
     { label: t("settle.description"), value: remittance.value },
   ];
 });
+
+const showQr = ref(false);
 
 const busy = ref(false);
 const error = ref("");
