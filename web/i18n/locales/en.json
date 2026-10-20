@@ -432,15 +432,9 @@
     "confirmNote": "{name} will be asked to confirm the money arrived. It counts toward balances once they do.",
     "directNote": "{name} doesn't use BillSplit, so it counts right away.",
     "howToScan": "How to scan",
-    "openBankApp": "Open in banking app",
-    "shareFailed": "Couldn't open the share menu. Use the payment details below.",
-    "payByHand": "Or enter the payment details yourself",
+    "scanOtherPhone": "Scan it with your banking app on another phone.",
     "showQr": "Show QR code",
-    "hideQr": "Hide QR code",
-    "showQrHelp": "Scan this with your banking app on another phone.",
-    "chooseBankHelp": "Pick your bank. BillSplit copies the IBAN, then opens the app through the App Store or Play Store: tap Open there, paste the IBAN and enter the amount.",
-    "ibanCopied": "IBAN copied. Paste it in {bank}.",
-    "shareQr": "Share the QR code with your bank app instead"
+    "hideQr": "Hide QR code"
   },
   "payments": {
     "title": "Payments in progress",
