@@ -15,11 +15,13 @@
         :description="$t('settle.notEuro', { currency: cur })"
       />
 
-      <template v-if="bank">
-        <!-- Desktop: scan the QR code with a phone. -->
-        <div v-if="euro" class="mb-4 hidden flex-col gap-2 sm:flex">
-          <QrCode :value="qrPayload" :label="$t('settle.qrLabel')" class="w-52 shrink-0 ring-1 ring-default" />
-          <p class="font-semibold text-highlighted">
+      <!-- Desktop puts the QR code first, to scan with a phone. A phone can't scan its own screen, so there the details come first. -->
+      <div v-if="bank" class="flex flex-col gap-5 sm:gap-4">
+        <div v-if="euro" class="order-last flex flex-col gap-2 sm:order-first">
+          <p class="text-sm font-semibold text-highlighted sm:hidden">{{ $t("settle.orScan") }}</p>
+          <QrCode :value="qrPayload" :label="$t('settle.qrLabel')" class="w-60 max-w-full shrink-0 ring-1 ring-default sm:w-52" />
+          <p class="text-sm text-muted sm:hidden">{{ $t("settle.scanOtherPhone") }}</p>
+          <p class="hidden font-semibold text-highlighted sm:block">
             {{ $t("settle.scan") }}
             <UPopover :content="{ side: 'top' }">
               <UButton color="neutral" variant="ghost" size="sm" icon="i-lucide-info" class="align-middle" :aria-label="$t('settle.howToScan')" :title="$t('settle.howToScan')" />
@@ -30,53 +32,6 @@
           </p>
         </div>
 
-        <!-- Phone: a QR code on the screen you pay with can't be scanned, so hand the code to the banking app instead. -->
-        <div v-if="euro" class="mb-5 flex flex-col gap-2 sm:hidden">
-          <UButton
-            block
-            size="lg"
-            icon="i-lucide-landmark"
-            :trailing-icon="showBanks ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-            :ui="{ trailingIcon: 'ms-auto' }"
-            :label="$t('settle.openBankApp')"
-            :aria-expanded="showBanks"
-            @click="showBanks = !showBanks"
-          />
-          <div v-if="showBanks" class="mb-2 rounded-lg p-3 ring-1 ring-default">
-            <p class="mb-3 text-sm text-muted">{{ $t("settle.chooseBankHelp") }}</p>
-            <div class="grid grid-cols-2 gap-2">
-              <UButton v-for="app in BANK_APPS" :key="app.name" color="neutral" variant="outline" class="justify-center" :label="app.name" @click="openBankApp(app)" />
-            </div>
-            <UButton
-              v-if="canShareFiles"
-              color="neutral"
-              variant="link"
-              icon="i-lucide-share"
-              class="mt-2 -ms-2.5"
-              :label="$t('settle.shareQr')"
-              :loading="sharing"
-              @click="shareQr"
-            />
-          </div>
-          <UButton
-            block
-            size="lg"
-            color="neutral"
-            variant="subtle"
-            icon="i-lucide-qr-code"
-            :trailing-icon="showQr ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
-            :ui="{ trailingIcon: 'ms-auto' }"
-            :label="$t(showQr ? 'settle.hideQr' : 'settle.showQr')"
-            :aria-expanded="showQr"
-            @click="showQr = !showQr"
-          />
-          <div v-if="showQr" class="mt-1 flex flex-col gap-2">
-            <QrCode :value="qrPayload" :label="$t('settle.qrLabel')" class="w-60 max-w-full ring-1 ring-default" />
-            <p class="text-sm text-muted">{{ $t("settle.showQrHelp") }}</p>
-          </div>
-        </div>
-
-        <p v-if="euro" class="mb-2 text-sm font-semibold text-highlighted sm:hidden">{{ $t("settle.payByHand") }}</p>
         <dl class="divide-y divide-default rounded-lg ring-1 ring-default">
           <div v-for="row in rows" :key="row.label" class="flex items-center gap-3 px-3 py-2">
             <div class="min-w-0 flex-1">
@@ -94,7 +49,7 @@
             />
           </div>
         </dl>
-      </template>
+      </div>
     </template>
 
     <template #footer>
@@ -139,42 +94,6 @@ const rows = computed(() => {
     { label: t("settle.description"), value: remittance.value },
   ];
 });
-
-const showQr = ref(false);
-const showBanks = ref(false);
-
-// Copy the IBAN first (the one detail that's tedious to type), then open the bank's app through its store page.
-async function openBankApp(app: BankApp) {
-  try {
-    await navigator.clipboard.writeText(bank.value!.iban);
-    toast.add({ title: t("settle.ibanCopied", { bank: app.name }), icon: "i-lucide-copy-check", color: "success" });
-  } catch {
-    // Without clipboard access the details below can still be copied one by one.
-  }
-  window.location.href = bankAppUrl(app);
-}
-
-// Some banking apps (KBC, Belfius) read the QR code from a shared image, where the phone can share files.
-const sharing = ref(false);
-const canShareFiles = ref(false);
-onMounted(() => {
-  const probe = new File([new Blob()], "probe.png", { type: "image/png" });
-  canShareFiles.value = typeof navigator.share === "function" && !!navigator.canShare?.({ files: [probe] });
-});
-
-async function shareQr() {
-  sharing.value = true;
-  try {
-    const blob = await qrPng(qrPayload.value);
-    const file = new File([blob], "billsplit-payment.png", { type: "image/png" });
-    await navigator.share({ files: [file], title: t("settle.title", { name: toName.value }) });
-  } catch (err) {
-    // Closing the share sheet isn't an error.
-    if ((err as Error).name !== "AbortError") toast.add({ title: t("settle.shareFailed"), color: "error" });
-  } finally {
-    sharing.value = false;
-  }
-}
 
 const busy = ref(false);
 const error = ref("");
