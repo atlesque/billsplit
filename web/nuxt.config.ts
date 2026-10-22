@@ -34,6 +34,8 @@ export default defineNuxtConfig({
         { rel: "manifest", href: "/manifest.webmanifest" },
         { rel: "preload", href: "/fonts/plus-jakarta-sans-latin-wght-normal.woff2", as: "font", type: "font/woff2", crossorigin: "" },
       ],
+      // Shared opt-in banner for Cloudflare Web Analytics (see https://tools.atlesque.dev/privacy).
+      script: [{ src: "https://tools.atlesque.dev/consent.js", defer: true }],
     },
   },
 
