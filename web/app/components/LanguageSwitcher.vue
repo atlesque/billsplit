@@ -8,7 +8,14 @@
     :aria-label="$t('lang.label')"
     :title="$t('lang.label')"
     class="w-auto"
-    :ui="{ content: 'min-w-36' }"
+    :ui="{
+      // On phones only the translate icon shows, so the header fits next to the account button.
+      base: 'max-sm:size-8 max-sm:justify-center max-sm:p-0',
+      leading: 'max-sm:static max-sm:p-0',
+      value: 'max-sm:hidden',
+      trailing: 'max-sm:hidden',
+      content: 'min-w-36',
+    }"
   />
 </template>
 

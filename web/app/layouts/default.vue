@@ -2,7 +2,7 @@
   <div>
     <header class="sticky top-0 z-10 border-b border-default bg-default/85 backdrop-blur">
       <div class="mx-auto flex items-center justify-between gap-3 px-4 py-2.5" :class="wide ? 'max-w-6xl' : 'max-w-3xl'">
-        <NuxtLink to="/" class="flex items-center gap-2.5 text-[1.05rem] font-bold tracking-tight text-highlighted">
+        <NuxtLink to="/" class="flex shrink-0 items-center gap-2.5 text-[1.05rem] font-bold tracking-tight text-highlighted">
           <img src="/icon.svg" alt="" width="28" height="28" />
           <span>BillSplit<span class="text-secondary">.</span></span>
           <UBadge v-if="staging" :label="$t('testLogin.staging')" color="warning" variant="subtle" size="sm" />
