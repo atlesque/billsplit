@@ -62,7 +62,14 @@
     />
 
     <GroupOverviewTab v-if="tab === 'overview'" :data="data" @person="openPerson" @expenses="tab = 'expenses'" @add="openExpense(null)" />
-    <GroupExpensesTab v-else-if="tab === 'expenses'" :data="data" @add="openExpense(null)" @open="openExpense" />
+    <GroupExpensesTab
+      v-else-if="tab === 'expenses'"
+      :data="data"
+      :person="personFilter"
+      @add="openExpense(null)"
+      @open="openExpense"
+      @clear-person="router.replace({ query: { tab: 'expenses' } })"
+    />
     <GroupBalancesTab v-else-if="tab === 'balances'" :data="data" @changed="refresh" @person="openPerson" />
     <GroupPeopleTab v-else :data="data" @changed="refresh" />
   </div>
@@ -109,8 +116,11 @@ const tabs = computed(() =>
   })),
 );
 
+// ?person=<id> narrows the Expenses tab to one person's expenses, from their balance overview.
+const personFilter = computed(() => (typeof route.query.person === "string" ? route.query.person : undefined));
+
 function openPerson(memberId: string) {
-  personModal.open({ data: data.value!, memberId, onChanged: refresh });
+  personModal.open({ data: data.value!, memberId, onChanged: refresh, onExpenses: (person) => router.push({ query: { tab: "expenses", person } }) });
 }
 // Keep an open overview in step with the group after a payment or an edit.
 watch(data, (value) => {

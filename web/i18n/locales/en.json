@@ -142,7 +142,10 @@
     "youGave": "you gave {amount}",
     "youReceived": "you received {amount}",
     "youLent": "you lent {amount}",
-    "youOwe": "you owe {amount}"
+    "youOwe": "you owe {amount}",
+    "onlyWith": "Only expenses with {name}",
+    "onlyYours": "Only your expenses",
+    "showAll": "Show all"
   },
   "balances": {
     "title": "Balances",
@@ -470,10 +473,8 @@
     "toReceive": "Who pays you",
     "noExpenses": "{name} isn't in any expenses yet.",
     "noExpensesYou": "You're not in any expenses yet.",
-    "lent": "lent {amount}",
-    "owes": "owes {amount}",
-    "gave": "gave {amount}",
-    "received": "received {amount}"
+    "viewExpenses": "View {name}'s expense | View {name}'s {count} expenses",
+    "viewExpensesYou": "View your expense | View your {count} expenses"
   },
   "attachments": {
     "title": "Attachments",

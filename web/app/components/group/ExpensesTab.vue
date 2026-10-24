@@ -6,6 +6,16 @@
   <div v-else>
     <!-- Full width and left-aligned, so it reads in line with the tabs and the list below. -->
     <UButton v-if="!archived" block size="lg" icon="i-lucide-plus" class="justify-start" :label="$t('group.addExpense')" @click="emit('add')" />
+    <!-- Opened from someone's balance overview: only the expenses they're in, until cleared. -->
+    <div v-if="filterMember" class="flex flex-wrap items-center gap-x-3 gap-y-1 pt-4">
+      <span class="text-sm font-semibold text-highlighted">
+        {{ filterMember.isMe ? $t("expenses.onlyYours") : $t("expenses.onlyWith", { name: filterMember.name }) }}
+      </span>
+      <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-x" :label="$t('expenses.showAll')" @click="emit('clear-person')" />
+    </div>
+    <UCard v-if="filterMember && !byDate.length" class="mt-4 py-4 text-center text-muted">
+      {{ $t(filterMember.isMe ? "person.noExpensesYou" : "person.noExpenses", { name: filterMember.name }) }}
+    </UCard>
     <template v-for="([date, list], i) in byDate" :key="date">
       <div :class="i === 0 && archived ? '' : 'pt-4'" class="px-1 pb-1.5 text-xs font-semibold tracking-wide text-muted uppercase">{{ formatDate(date) }}</div>
       <UCard :ui="{ body: 'p-0 sm:p-0' }">
@@ -44,17 +54,19 @@
 </template>
 
 <script setup lang="ts">
-const props = defineProps<{ data: GroupData }>();
-const emit = defineEmits<{ add: []; open: [expense: Expense] }>();
+const props = defineProps<{ data: GroupData; person?: string }>();
+const emit = defineEmits<{ add: []; open: [expense: Expense]; "clear-person": [] }>();
 const { t } = useI18n();
 const { money, formatDate } = useFormat();
 const { name, expenseTitle, categoryLabel } = useMemberNames(() => props.data);
 
 const cur = computed(() => props.data.group.currency);
 const archived = computed(() => Boolean(props.data.group.archived_at));
+const filterMember = computed(() => props.data.members.find((m) => m.id === props.person));
+const shown = computed(() => (filterMember.value ? props.data.expenses.filter((e) => expenseInvolves(e, filterMember.value!.id)) : props.data.expenses));
 const byDate = computed(() => {
   const map = new Map<string, Expense[]>();
-  for (const e of props.data.expenses) map.set(e.date, [...(map.get(e.date) ?? []), e]);
+  for (const e of shown.value) map.set(e.date, [...(map.get(e.date) ?? []), e]);
   return [...map];
 });
 

@@ -52,3 +52,6 @@ export const CATEGORIES: Record<string, string> = {
   Bills: "bills",
   Other: "other",
 };
+
+/** Whether a person paid for an expense or has a share in it. */
+export const expenseInvolves = (e: Expense, memberId: string) => e.paidBy === memberId || e.shares.some((s) => s.memberId === memberId && (s.amount ?? 0) > 0);
