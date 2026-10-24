@@ -142,7 +142,10 @@
     "youGave": "je gaf {amount}",
     "youReceived": "je ontving {amount}",
     "youLent": "je schoot {amount} voor",
-    "youOwe": "je moet {amount} betalen"
+    "youOwe": "je moet {amount} betalen",
+    "onlyWith": "Alleen uitgaven met {name}",
+    "onlyYours": "Alleen jouw uitgaven",
+    "showAll": "Alles tonen"
   },
   "balances": {
     "title": "Saldi",
@@ -470,10 +473,8 @@
     "toReceive": "Wie jou moet betalen",
     "noExpenses": "{name} doet nog niet mee in uitgaven.",
     "noExpensesYou": "Je doet nog niet mee in uitgaven.",
-    "lent": "schoot {amount} voor",
-    "owes": "moet {amount} betalen",
-    "gave": "gaf {amount}",
-    "received": "ontving {amount}"
+    "viewExpenses": "Uitgave van {name} bekijken | {count} uitgaven van {name} bekijken",
+    "viewExpensesYou": "Jouw uitgave bekijken | Jouw {count} uitgaven bekijken"
   },
   "attachments": {
     "title": "Bijlagen",

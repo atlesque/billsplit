@@ -9,7 +9,17 @@
         </i18n-t>
         <span class="font-semibold whitespace-nowrap tabular-nums">{{ money(s.amount, cur) }}</span>
         <UBadge v-if="pendingFor(s)" color="neutral" variant="subtle" :label="$t('payments.pending')" />
-        <UButton v-else-if="s.from === data.meId" size="sm" icon="i-lucide-qr-code" :ui="{ leadingIcon: 'max-sm:hidden' }" :label="$t('balances.pay')" @click="pay(s)" />
+        <!-- Paying is the point of this list, so Pay is a big filled button on a line of its own, left-aligned like Add expense. -->
+        <UButton
+          v-else-if="s.from === data.meId"
+          block
+          size="lg"
+          icon="i-lucide-qr-code"
+          class="basis-full justify-start"
+          :ui="{ leadingIcon: 'max-sm:hidden' }"
+          :label="$t('balances.pay')"
+          @click="pay(s)"
+        />
         <UButton v-else-if="s.to === data.meId" size="sm" color="neutral" variant="outline" :label="$t('balances.markReceived')" @click="record(s)" />
         <UButton v-else-if="!member(s.from)?.claimed" size="sm" color="neutral" variant="outline" :label="$t('balances.markPaid')" @click="record(s)" />
       </li>
