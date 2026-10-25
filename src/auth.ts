@@ -5,7 +5,9 @@ import { requestLang, tr, type Lang } from "./i18n";
 import { HttpError, maskPath, now, randomId, readJson, sha256, text } from "./http";
 
 const SESSION_COOKIE = "bs_session";
-const SESSION_TTL = 90 * 24 * 3600 * 1000;
+// Sessions slide: each visit (GET /api/me) pushes expiry back to a full year, at most once a day.
+const SESSION_TTL = 365 * 24 * 3600 * 1000;
+const SESSION_RENEW_AFTER = 24 * 3600 * 1000;
 const LOGIN_TTL = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const MAX_REQUESTS_PER_WINDOW = 5;
@@ -43,6 +45,17 @@ export async function currentUser(request: Request, env: Env): Promise<User | nu
     if (current !== lang) await env.DB.prepare("UPDATE users SET lang = ? WHERE id = ?").bind(current, user.id).run();
   }
   return user;
+}
+
+/** Extends the caller's session to a full SESSION_TTL; returns the refreshed cookie, or null if nothing changed. */
+export async function renewSession(request: Request, env: Env): Promise<string | null> {
+  const token = readCookie(request, SESSION_COOKIE);
+  if (!token) return null;
+  const expiresAt = now() + SESSION_TTL;
+  const res = await env.DB.prepare("UPDATE sessions SET expires_at = ? WHERE token_hash = ? AND expires_at > ? AND expires_at < ?")
+    .bind(expiresAt, await sha256(token), now(), expiresAt - SESSION_RENEW_AFTER)
+    .run();
+  return res.meta.changes ? sessionCookie(token, SESSION_TTL / 1000) : null;
 }
 
 export async function requireUser(request: Request, env: Env): Promise<User> {

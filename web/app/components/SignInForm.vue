@@ -48,7 +48,14 @@ const api = useApi();
 const toast = useToast();
 const { signedIn, staging } = useSession();
 
+// Remember the last email used on this device, so returning users just press Continue.
+const LAST_EMAIL_KEY = "bs_last_email";
 const state = reactive({ email: "" });
+onMounted(() => {
+  try {
+    state.email ||= localStorage.getItem(LAST_EMAIL_KEY) ?? "";
+  } catch {}
+});
 const code = ref<(number | undefined)[]>([]);
 const sent = ref<{ requestId: string; email: string } | null>(null);
 const error = ref("");
@@ -62,6 +69,9 @@ async function start() {
   try {
     sent.value = await api("/auth/start", { method: "POST", body: { email: state.email, next: next.value } });
     code.value = [];
+    try {
+      localStorage.setItem(LAST_EMAIL_KEY, sent.value!.email);
+    } catch {}
   } catch (err) {
     error.value = (err as Error).message;
   } finally {
