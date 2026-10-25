@@ -474,7 +474,11 @@
     "noExpenses": "{name} isn't in any expenses yet.",
     "noExpensesYou": "You're not in any expenses yet.",
     "viewExpenses": "View {name}'s expense | View {name}'s {count} expenses",
-    "viewExpensesYou": "View your expense | View your {count} expenses"
+    "viewExpensesYou": "View your expense | View your {count} expenses",
+    "lent": "lent {amount}",
+    "owes": "owes {amount}",
+    "gave": "gave {amount}",
+    "received": "received {amount}"
   },
   "attachments": {
     "title": "Attachments",

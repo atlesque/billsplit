@@ -474,7 +474,11 @@
     "noExpenses": "{name} doet nog niet mee in uitgaven.",
     "noExpensesYou": "Je doet nog niet mee in uitgaven.",
     "viewExpenses": "Uitgave van {name} bekijken | {count} uitgaven van {name} bekijken",
-    "viewExpensesYou": "Jouw uitgave bekijken | Jouw {count} uitgaven bekijken"
+    "viewExpensesYou": "Jouw uitgave bekijken | Jouw {count} uitgaven bekijken",
+    "lent": "schoot {amount} voor",
+    "owes": "moet {amount} betalen",
+    "gave": "gaf {amount}",
+    "received": "ontving {amount}"
   },
   "attachments": {
     "title": "Bijlagen",
