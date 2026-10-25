@@ -49,11 +49,13 @@
                 <span class="block text-sm text-muted">{{ peopleCount(g.member_count) }} · {{ $t("groups.spent", { amount: money(g.total, g.currency) }) }}</span>
                 <span v-if="g.to_confirm" class="block text-sm font-semibold text-primary">{{ $t("groups.toConfirm", g.to_confirm) }}</span>
               </span>
-              <span class="col-start-2 text-sm font-semibold tabular-nums sm:col-start-3 sm:row-start-1 sm:text-end sm:whitespace-nowrap" :class="tone(g.my_balance)">
+              <span class="col-start-2 text-sm font-semibold tabular-nums sm:col-start-3 sm:row-start-1 sm:text-end sm:whitespace-nowrap" :class="awaiting(g) ? 'text-muted' : tone(g.my_balance)">
                 {{
                   g.my_balance === 0
                     ? $t("balance.settled")
-                    : $t(g.my_balance > 0 ? "balance.owedAmount" : "balance.oweAmount", { amount: money(Math.abs(g.my_balance), g.currency) })
+                    : $t(g.my_balance > 0 ? "balance.owedAmount" : awaiting(g) ? "balance.awaitingAmount" : "balance.oweAmount", {
+                        amount: money(Math.abs(g.my_balance), g.currency),
+                      })
                 }}
               </span>
             </NuxtLink>
@@ -68,6 +70,8 @@
 const api = useApi();
 const { money, peopleCount } = useFormat();
 const { data: groups, error, pending } = useLoad(() => api<GroupSummary[]>("/groups"));
+// You owe money but already sent all of it: only the confirmation is missing.
+const awaiting = (g: GroupSummary) => g.my_balance < 0 && g.my_sent >= -g.my_balance;
 // Settled groups (nothing owed either way, no payments to confirm) sit in a collapsed list
 // below the active ones; archived groups get their own list at the bottom. A group without
 // expenses yet stays active.

@@ -2,20 +2,27 @@
   <div class="space-y-3">
     <!-- What you owe and what you're owed get a card each, side by side from sm up so both always read at a glance. -->
     <div class="grid gap-3 sm:grid-cols-2">
-      <!-- What you owe comes first, and the whole card is the way to pay it. -->
-      <button v-if="mine.balance < 0" type="button" :class="[card, 'ring-error/40 bg-error/5 hover:bg-error/10']" @click="emit('person', mine.id)">
+      <!-- What you owe comes first, and the whole card is the way to pay it. Once you've sent it all, it turns neutral: you're only waiting for confirmation. -->
+      <button
+        v-if="mine.balance < 0"
+        type="button"
+        :class="[card, awaiting ? 'hover:bg-elevated/60' : 'ring-error/40 bg-error/5 hover:bg-error/10']"
+        @click="emit('person', mine.id)"
+      >
         <span class="flex items-start gap-3">
           <span class="min-w-0 flex-1">
-            <span class="block text-sm text-muted">{{ $t("balance.owe") }}</span>
-            <span class="block text-2xl font-bold tabular-nums text-error">{{ money(-mine.balance, cur) }}</span>
+            <span class="block text-sm text-muted">{{ $t(awaiting ? "balance.awaiting" : "balance.owe") }}</span>
+            <span class="block text-2xl font-bold tabular-nums" :class="awaiting ? 'text-highlighted' : 'text-error'">{{ money(-mine.balance, cur) }}</span>
           </span>
-          <span v-if="toPay.every((s) => s.pending)" class="mt-1 shrink-0 text-sm text-muted">{{ $t("overview.waiting") }}</span>
+          <span v-if="awaiting" class="mt-1 inline-flex shrink-0 items-center gap-1 text-sm text-muted">
+            <UIcon name="i-lucide-hourglass" class="size-4" />{{ $t("overview.waiting") }}
+          </span>
           <span v-else class="mt-1 inline-flex shrink-0 items-center gap-1 rounded-md bg-error px-3 py-1.5 text-sm font-semibold text-inverted">
             {{ $t("overview.pay") }}
             <UIcon name="i-lucide-chevron-right" class="size-4" />
           </span>
         </span>
-        <ul v-if="toPay.length" class="mt-3 space-y-1 border-t border-error/20 pt-3 text-sm">
+        <ul v-if="toPay.length" class="mt-3 space-y-1 border-t pt-3 text-sm" :class="awaiting ? 'border-default' : 'border-error/20'">
           <li v-for="s in toPay" :key="s.to" class="flex items-center gap-2">
             <span class="min-w-0 flex-1 truncate">{{ $t("overview.to", { name: name(s.to, { object: true }) }) }}</span>
             <UBadge v-if="s.pending" color="neutral" variant="subtle" size="sm" :label="$t('payments.pending')" />
@@ -92,8 +99,9 @@ const expenses = computed(() => props.data.expenses.filter((e) => e.kind === "ex
 const total = computed(() => expenses.value.reduce((a, e) => a + e.amount, 0));
 const expenseCount = computed(() => expenses.value.length);
 
-const pendingFor = (s: Settlement) => props.data.payments.some((p) => p.from === s.from && p.to === s.to && p.status !== "failed");
+const pendingFor = (s: Settlement) => settlementPending(props.data, s);
 const toPay = computed(() => props.data.settlements.filter((s) => s.from === props.data.meId).map((s) => ({ ...s, pending: pendingFor(s) })));
 const toReceive = computed(() => props.data.settlements.filter((s) => s.to === props.data.meId).map((s) => ({ ...s, pending: pendingFor(s) })));
+const awaiting = computed(() => awaitingConfirmation(props.data, props.data.meId));
 const paymentsToConfirm = computed(() => props.data.payments.filter((p) => p.to === props.data.meId && p.canConfirm && p.status !== "failed").length);
 </script>

@@ -108,7 +108,9 @@
     "owedAmount": "Je krijgt nog {amount}",
     "oweAmount": "Je moet nog {amount} betalen",
     "owed": "Je krijgt nog",
-    "owe": "Je moet nog betalen"
+    "owe": "Je moet nog betalen",
+    "awaiting": "Wacht op bevestiging",
+    "awaitingAmount": "{amount} wacht op bevestiging"
   },
   "newGroup": {
     "help": "Daarna krijg je één link om met iedereen in de groep te delen.",
@@ -155,17 +157,21 @@
     "youPay": "{you} betaalt {to}",
     "pays": "{from} betaalt {to}",
     "markPaid": "Betaald",
+    "markAsPaid": "Markeren als betaald",
+    "showDetails": "Betaalgegevens tonen",
     "allSettled": "Iedereen staat quitte.",
     "totals": "Totalen",
     "paidShare": "betaald {paid} · aandeel {share}",
     "pay": "Betalen",
-    "markReceived": "Ontvangen",
+    "markReceived": "Markeren als ontvangen",
     "getsBack": "krijgt nog",
     "owes": "moet nog betalen",
     "settled": "staat quitte",
     "youGetBack": "je krijgt nog",
     "youOwe": "je moet nog betalen",
-    "youSettled": "je staat quitte"
+    "youSettled": "je staat quitte",
+    "awaiting": "verstuurd, wacht op bevestiging",
+    "youAwaiting": "je hebt het verstuurd, wacht op bevestiging"
   },
   "share": {
     "created": "Groep aangemaakt",

@@ -20,11 +20,11 @@
           >
             <span class="min-w-0 flex-1">
               <span class="block truncate font-semibold text-highlighted">{{ m.isMe ? $t("nameYou", { name: m.name }) : m.name }}</span>
-              <span class="block text-sm text-muted">{{ standing(m) }}</span>
+              <span class="block text-sm text-muted">{{ standing(m, awaitingConfirmation(data, m.id)) }}</span>
             </span>
             <span
               class="shrink-0 rounded-md px-2.5 py-1 font-semibold whitespace-nowrap tabular-nums"
-              :class="m.balance > 0 ? 'bg-success/10 text-success' : m.balance < 0 ? 'bg-error/10 text-error' : 'bg-elevated text-muted'"
+              :class="pill(m)"
             >
               {{ m.balance > 0 ? "+" : "" }}{{ money(m.balance, cur) }}
             </span>
@@ -58,6 +58,9 @@ const props = defineProps<{ data: GroupData }>();
 const emit = defineEmits<{ changed: []; person: [memberId: string] }>();
 const { money } = useFormat();
 const standing = useStanding();
+// Owing money you already sent isn't red any more: it's only waiting for the other side.
+const pill = (m: { id: string; balance: number }) =>
+  m.balance > 0 ? "bg-success/10 text-success" : m.balance < 0 && !awaitingConfirmation(props.data, m.id) ? "bg-error/10 text-error" : "bg-elevated text-muted";
 
 const cur = computed(() => props.data.group.currency);
 const toConfirm = computed(() => props.data.payments.some((p) => p.canConfirm && p.status !== "failed"));
