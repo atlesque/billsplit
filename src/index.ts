@@ -5,6 +5,7 @@ import {
   isAdmin,
   logout,
   me,
+  renewSession,
   requireAdmin,
   requireUser,
   startLogin,
@@ -70,7 +71,11 @@ async function route(request: Request, env: Env, url: URL, ctx: ExecutionContext
   if (path === "/api/auth/test-user" && method === "POST") return mockSignIn(request, env);
   if (path === "/api/me" && method === "GET") {
     const user = await currentUser(request, env);
-    return Response.json({ user: user && (await me(env, user)), isAdmin: isAdmin(env, user), staging: isStaging(env) });
+    const cookie = user && (await renewSession(request, env));
+    return Response.json(
+      { user: user && (await me(env, user)), isAdmin: isAdmin(env, user), staging: isStaging(env) },
+      cookie ? { headers: { "Set-Cookie": cookie } } : undefined,
+    );
   }
 
   // Invite preview is public so signed-out visitors see what they're joining.
