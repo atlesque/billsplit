@@ -95,7 +95,7 @@ const personModal = overlay.create(PersonModal);
 const settingsModal = overlay.create(SettingsModal);
 
 const id = computed(() => String(route.params.id));
-const { data, error, pending, refresh } = useLoad(() => api<GroupData>(`/groups/${id.value}`), id);
+const { data, error, pending, refresh } = useLoad(() => ["group", id.value], () => api<GroupData>(`/groups/${id.value}`));
 
 const group = computed(() => data.value!.group);
 const mine = computed(() => data.value!.members.find((m) => m.id === data.value!.meId)!);

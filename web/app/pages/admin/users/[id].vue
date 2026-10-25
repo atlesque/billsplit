@@ -25,7 +25,7 @@ const { t } = useI18n();
 const api = useApi();
 const { formatTime } = useFormat();
 const id = computed(() => String(route.params.id));
-const { data: d, error, pending } = useLoad(() => api<{ user: AdminRow; groups: AdminRow[]; signins: SignInRow[]; audit: AuditEntry[] }>(`/admin/users/${id.value}`), id);
+const { data: d, error, pending } = useLoad(() => ["admin/user", id.value], () => api<{ user: AdminRow; groups: AdminRow[]; signins: SignInRow[]; audit: AuditEntry[] }>(`/admin/users/${id.value}`));
 const groupColumns = computed(() => [
   { id: "group", header: t("admin.group") },
   { accessorKey: "member_name", header: t("admin.as") },

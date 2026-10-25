@@ -39,13 +39,22 @@ const query = () => {
   return q;
 };
 
-const { error, pending } = useLoad(async () => {
-  filters.action = String(route.query.action || ALL);
-  filters.actor = String(route.query.actor ?? "");
-  const page = await api<{ entries: AuditEntry[]; next: string | null }>(`/admin/audit?${query()}`);
-  entries.value = page.entries;
-  next.value = page.next;
-}, () => route.query);
+// Not refetched in the background: that would drop the pages added with "Load more".
+const { data: first, error, pending } = useLoad(
+  () => ["admin/audit", query().toString()],
+  () => api<{ entries: AuditEntry[]; next: string | null }>(`/admin/audit?${query()}`),
+  { live: false },
+);
+watch(
+  first,
+  (page) => {
+    filters.action = String(route.query.action || ALL);
+    filters.actor = String(route.query.actor ?? "");
+    entries.value = page?.entries ?? [];
+    next.value = page?.next ?? null;
+  },
+  { immediate: true },
+);
 
 function apply() {
   router.replace({ query: { ...(filters.action !== ALL && { action: filters.action }), ...(filters.actor && { actor: filters.actor }) } });

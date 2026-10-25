@@ -69,7 +69,7 @@
 <script setup lang="ts">
 const api = useApi();
 const { money, peopleCount } = useFormat();
-const { data: groups, error, pending } = useLoad(() => api<GroupSummary[]>("/groups"));
+const { data: groups, error, pending } = useLoad("groups", () => api<GroupSummary[]>("/groups"));
 // You owe money but already sent all of it: only the confirmation is missing.
 const awaiting = (g: GroupSummary) => g.my_balance < 0 && g.my_sent >= -g.my_balance;
 // Settled groups (nothing owed either way, no payments to confirm) sit in a collapsed list
