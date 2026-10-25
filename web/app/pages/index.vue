@@ -16,9 +16,21 @@
       <h1 class="text-2xl font-bold text-highlighted">{{ $t("nav.yourGroups") }}</h1>
       <UButton to="/new" icon="i-lucide-plus" :label="$t('groups.new')" />
     </div>
-    <template v-for="section in sections" :key="section.key">
-      <h2 v-if="section.key === 'archived'" class="mt-6 mb-2 text-lg font-semibold text-highlighted">{{ $t("archive.section") }}</h2>
-      <UCard :ui="{ body: 'p-0 sm:p-0' }">
+    <template v-for="(section, i) in sections" :key="section.key">
+      <button
+        v-if="section.key === 'settled'"
+        type="button"
+        class="mb-2 flex items-center gap-1.5 text-lg font-semibold text-highlighted"
+        :class="i > 0 && 'mt-6'"
+        :aria-expanded="showSettled"
+        @click="settledOpen = !showSettled"
+      >
+        <UIcon name="i-lucide-chevron-right" class="size-5 text-muted transition-transform" :class="showSettled && 'rotate-90'" />
+        {{ $t("groups.settledSection") }}
+        <span class="font-normal text-muted">({{ section.groups.length }})</span>
+      </button>
+      <h2 v-else-if="section.key === 'archived'" class="mt-6 mb-2 text-lg font-semibold text-highlighted">{{ $t("archive.section") }}</h2>
+      <UCard v-if="section.key !== 'settled' || showSettled" :ui="{ body: 'p-0 sm:p-0' }">
         <ul class="divide-y divide-default">
           <li v-for="g in section.groups" :key="g.id">
             <!-- Phones put the balance under the group details; wider screens keep it on the right. -->
@@ -56,11 +68,19 @@
 const api = useApi();
 const { money, peopleCount } = useFormat();
 const { data: groups, error, pending } = useLoad(() => api<GroupSummary[]>("/groups"));
-// Archived groups are listed on their own, below the active ones.
-const sections = computed(() =>
-  [
-    { key: "active", groups: (groups.value ?? []).filter((g) => !g.archived_at) },
+// Settled groups (nothing owed either way, no payments to confirm) sit in a collapsed list
+// below the active ones; archived groups get their own list at the bottom. A group without
+// expenses yet stays active.
+const isSettled = (g: GroupSummary) => g.my_balance === 0 && !g.to_confirm && g.total > 0;
+const sections = computed(() => {
+  const open = (groups.value ?? []).filter((g) => !g.archived_at);
+  return [
+    { key: "active", groups: open.filter((g) => !isSettled(g)) },
+    { key: "settled", groups: open.filter(isSettled) },
     { key: "archived", groups: (groups.value ?? []).filter((g) => g.archived_at) },
-  ].filter((s) => s.groups.length),
-);
+  ].filter((s) => s.groups.length);
+});
+// Collapsed by default, unless there's nothing else to show above it.
+const settledOpen = ref<boolean | null>(null);
+const showSettled = computed(() => settledOpen.value ?? sections.value[0]?.key === "settled");
 </script>
