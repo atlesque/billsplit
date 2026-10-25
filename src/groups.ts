@@ -152,7 +152,8 @@ export async function listGroups(env: Env, user: User): Promise<Response> {
        COALESCE((SELECT SUM(amount_cents) FROM expenses WHERE paid_by = m.id), 0)
          - COALESCE((SELECT SUM(amount_cents) FROM expense_shares WHERE member_id = m.id), 0) AS my_balance,
        COALESCE((SELECT MAX(updated_at) FROM expenses WHERE group_id = g.id), g.created_at) AS last_activity,
-       (SELECT COUNT(*) FROM payments WHERE to_member = m.id AND status = 'sent') AS to_confirm
+       (SELECT COUNT(*) FROM payments WHERE to_member = m.id AND status = 'sent') AS to_confirm,
+       COALESCE((SELECT SUM(amount_cents) FROM payments WHERE from_member = m.id AND status IN ('sent', 'not_received')), 0) AS my_sent
      FROM groups g JOIN members m ON m.group_id = g.id AND m.user_id = ?
      ORDER BY g.archived_at IS NOT NULL, last_activity DESC`,
   )

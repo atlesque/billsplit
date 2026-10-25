@@ -108,7 +108,9 @@
     "owedAmount": "You're owed {amount}",
     "oweAmount": "You owe {amount}",
     "owed": "You're owed",
-    "owe": "You owe"
+    "owe": "You owe",
+    "awaiting": "Awaiting confirmation",
+    "awaitingAmount": "{amount} awaiting confirmation"
   },
   "newGroup": {
     "help": "Next you'll get one link to share with everyone in the group.",
@@ -155,17 +157,21 @@
     "youPay": "{you} pay {to}",
     "pays": "{from} pays {to}",
     "markPaid": "Mark paid",
+    "markAsPaid": "Mark as paid",
+    "showDetails": "Show payment details",
     "allSettled": "Everyone is settled up.",
     "totals": "Totals",
     "paidShare": "paid {paid} · share {share}",
     "pay": "Pay",
-    "markReceived": "Mark received",
+    "markReceived": "Mark as received",
     "getsBack": "gets back",
     "owes": "owes",
     "settled": "settled up",
     "youGetBack": "you get back",
     "youOwe": "you owe",
-    "youSettled": "you're settled up"
+    "youSettled": "you're settled up",
+    "awaiting": "sent, awaiting confirmation",
+    "youAwaiting": "you sent it, awaiting confirmation"
   },
   "share": {
     "created": "Group created",

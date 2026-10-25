@@ -2,10 +2,10 @@
   <UModal :title="person.isMe ? $t('person.youTitle') : person.name" :ui="{ content: 'sm:max-w-xl' }">
     <template #body>
       <div class="mb-5 flex items-center justify-between gap-3">
-        <span class="text-muted first-letter:uppercase">{{ standing(person) }}</span>
+        <span class="text-muted first-letter:uppercase">{{ standing(person, awaiting) }}</span>
         <span
           class="shrink-0 rounded-md px-2.5 py-1 text-lg font-semibold whitespace-nowrap tabular-nums"
-          :class="person.balance > 0 ? 'bg-success/10 text-success' : person.balance < 0 ? 'bg-error/10 text-error' : 'bg-elevated text-muted'"
+          :class="person.balance > 0 ? 'bg-success/10 text-success' : person.balance < 0 && !awaiting ? 'bg-error/10 text-error' : 'bg-elevated text-muted'"
         >
           {{ person.balance > 0 ? "+" : "" }}{{ money(person.balance, cur) }}
         </span>
@@ -73,6 +73,7 @@ const expenseModal = overlay.create(ExpenseModal);
 
 const cur = computed(() => props.data.group.currency);
 const person = computed(() => props.data.members.find((m) => m.id === props.memberId)!);
+const awaiting = computed(() => awaitingConfirmation(props.data, props.memberId));
 const involves = (x: { from: string; to: string }) => x.from === props.memberId || x.to === props.memberId;
 const payments = computed(() => props.data.payments.filter(involves));
 const settlements = computed(() => props.data.settlements.filter(involves));

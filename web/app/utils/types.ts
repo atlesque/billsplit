@@ -20,6 +20,8 @@ export interface GroupSummary {
   member_count: number;
   total: number;
   my_balance: number;
+  /** Payments you marked as sent that the other side hasn't confirmed yet. */
+  my_sent: number;
   /** Payments to you that are waiting for you to confirm. */
   to_confirm: number;
   archived_at: number | null;
