@@ -120,7 +120,7 @@ const tabs = computed(() =>
 const personFilter = computed(() => (typeof route.query.person === "string" ? route.query.person : undefined));
 
 function openPerson(memberId: string) {
-  personModal.open({ data: data.value!, memberId, onChanged: refresh, onExpenses: (person) => router.push({ query: { tab: "expenses", person } }) });
+  personModal.open({ data: data.value!, memberId, onChanged: refresh });
 }
 // Keep an open overview in step with the group after a payment or an edit.
 watch(data, (value) => {
