@@ -52,7 +52,7 @@ function errorResponse(error: unknown, lang: Lang): Response {
 
 const ARCHIVED_ALLOWED = new Set(["DELETE ", "POST leave", "POST archive", "DELETE archive"]);
 
-async function route(request: Request, env: Env, url: URL): Promise<Response> {
+async function route(request: Request, env: Env, url: URL, ctx: ExecutionContext): Promise<Response> {
   const { method } = request;
   const path = url.pathname;
 
@@ -152,9 +152,9 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
       case "DELETE expenses/:id":
         return deleteExpense(request, env, user, groupId, itemId);
       case "POST payments":
-        return createPayment(request, env, user, groupId);
+        return createPayment(request, env, user, groupId, (p) => ctx.waitUntil(p));
       case "PATCH payments/:id":
-        return confirmPayment(request, env, user, groupId, itemId);
+        return confirmPayment(request, env, user, groupId, itemId, (p) => ctx.waitUntil(p));
       case "DELETE payments/:id":
         return cancelPayment(request, env, user, groupId, itemId);
     }
@@ -163,7 +163,7 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
 }
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request, env, ctx): Promise<Response> {
     const url = new URL(request.url);
     // Staging sits behind Cloudflare Access; the Worker checks the assertion too, so it stays
     // closed if Access is missing or misconfigured.
@@ -176,7 +176,7 @@ export default {
     }
     if (!url.pathname.startsWith("/api/")) return withPageMeta(await env.ASSETS.fetch(request), env.APP_URL, url.pathname);
     try {
-      const response = await route(request, env, url);
+      const response = await route(request, env, url, ctx);
       response.headers.set("Cache-Control", "no-store");
       return response;
     } catch (error) {

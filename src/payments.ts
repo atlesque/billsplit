@@ -7,6 +7,10 @@ import { audit } from "./audit";
 import type { User } from "./auth";
 import { groupForUser } from "./groups";
 import { cents, HttpError, now, randomId, readJson } from "./http";
+import { sendPaymentEmail } from "./notify";
+
+/** Hands background work (emails) to the runtime so the response doesn't wait for it. */
+export type Defer = (promise: Promise<unknown>) => void;
 
 export type PaymentStatus = "sent" | "not_received" | "failed" | "received";
 const OPEN = "('sent', 'not_received')";
@@ -65,7 +69,7 @@ function recordStatements(env: Env, groupId: string, p: { id: string; from: stri
   ];
 }
 
-export async function createPayment(request: Request, env: Env, user: User, groupId: string): Promise<Response> {
+export async function createPayment(request: Request, env: Env, user: User, groupId: string, defer: Defer): Promise<Response> {
   const { meId } = await groupForUser(env, groupId, user);
   const body = await readJson(request);
   const amount = cents(body.amount, "Amount");
@@ -99,6 +103,12 @@ export async function createPayment(request: Request, env: Env, user: User, grou
     target: id,
     details: { from: from.name, to: to.name, amount },
   });
+  // Tell the other side: the recipient that money is on its way, or the payer that it arrived.
+  const notify = confirmed ? from : to;
+  if (notify.user_id && notify.user_id !== user.id) {
+    const kind = confirmed ? "payment_received" : "payment_sent";
+    defer(sendPaymentEmail(env, { kind, userId: notify.user_id, groupId, from: from.name, to: to.name, amountCents: amount }));
+  }
   return Response.json({ id, status: confirmed ? "received" : "sent" }, { status: 201 });
 }
 
@@ -118,7 +128,7 @@ async function loadPayment(env: Env, groupId: string, paymentId: string) {
 const ANSWERS: PaymentStatus[] = ["received", "not_received", "failed"];
 
 /** The recipient's answer: received (done), not received (still in progress) or failed (closed). */
-export async function confirmPayment(request: Request, env: Env, user: User, groupId: string, paymentId: string) {
+export async function confirmPayment(request: Request, env: Env, user: User, groupId: string, paymentId: string, defer: Defer) {
   await groupForUser(env, groupId, user);
   const status = (await readJson(request)).status as PaymentStatus;
   if (!ANSWERS.includes(status)) throw new HttpError(400, "Unknown payment status");
@@ -139,6 +149,11 @@ export async function confirmPayment(request: Request, env: Env, user: User, gro
     target: p.id,
     details: { from: p.from_name, to: p.to_name, amount: p.amount_cents },
   });
+  if (status === "received" && p.from_user && p.from_user !== user.id) {
+    defer(
+      sendPaymentEmail(env, { kind: "payment_received", userId: p.from_user, groupId, from: p.from_name, to: p.to_name, amountCents: p.amount_cents }),
+    );
+  }
   return Response.json({ id: p.id, status });
 }
 
