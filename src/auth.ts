@@ -29,12 +29,20 @@ function readCookie(request: Request, name: string): string | null {
 export async function currentUser(request: Request, env: Env): Promise<User | null> {
   const token = readCookie(request, SESSION_COOKIE);
   if (!token) return null;
-  return env.DB.prepare(
-    `SELECT u.id, u.email, u.name FROM sessions s JOIN users u ON u.id = s.user_id
+  const row = await env.DB.prepare(
+    `SELECT u.id, u.email, u.name, u.lang FROM sessions s JOIN users u ON u.id = s.user_id
      WHERE s.token_hash = ? AND s.expires_at > ?`,
   )
     .bind(await sha256(token), now())
-    .first<User>();
+    .first<User & { lang: string }>();
+  if (!row) return null;
+  const { lang, ...user } = row;
+  // The app sends its display language with every request; keep the latest one for emails.
+  if (request.headers.has("Accept-Language")) {
+    const current = requestLang(request);
+    if (current !== lang) await env.DB.prepare("UPDATE users SET lang = ? WHERE id = ?").bind(current, user.id).run();
+  }
+  return user;
 }
 
 export async function requireUser(request: Request, env: Env): Promise<User> {
@@ -168,7 +176,7 @@ export async function startSession(
   user: User,
   { target, method, isNew, next }: { target: string; method: string; isNew: boolean; next: string },
 ): Promise<Response> {
-  await env.DB.prepare("UPDATE users SET last_login_at = ? WHERE id = ?").bind(now(), user.id).run();
+  await env.DB.prepare("UPDATE users SET last_login_at = ?, lang = ? WHERE id = ?").bind(now(), requestLang(request), user.id).run();
   await audit(env, request, user, "auth.signed_in", { target, details: { method } });
 
   const token = randomId(32);

@@ -107,6 +107,17 @@ const nl: Record<string, string> = {
   "The link and code expire in 15 minutes and work once. If you didn't ask for this, ignore this email.":
     "De link en code verlopen na 15 minuten en werken één keer. Heb je hier niet om gevraagd? Dan kun je deze e-mail negeren.",
 
+  // Payment emails
+  "{from} sent you {amount}": "{from} heeft je {amount} gestuurd",
+  "{from} says they sent you {amount} in {group}. Check your bank account and confirm in BillSplit once the money has arrived.":
+    "{from} heeft aangegeven dat er {amount} naar je is overgemaakt voor {group}. Kijk je rekening na en bevestig in BillSplit zodra het geld er is.",
+  "Confirm the payment": "Betaling bevestigen",
+  "{to} received your {amount}": "{to} heeft je betaling van {amount} ontvangen",
+  "{to} confirmed that your payment of {amount} in {group} arrived. It now counts towards your balance.":
+    "{to} heeft bevestigd dat je betaling van {amount} voor {group} is aangekomen. Ze telt nu mee in je saldo.",
+  "Open {group}": "{group} openen",
+  "You get this email because you're in {group} on BillSplit.": "Je krijgt deze e-mail omdat je in {group} zit op BillSplit.",
+
   // CSV export
   Date: "Datum",
   Type: "Soort",
