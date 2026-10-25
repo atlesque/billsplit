@@ -14,8 +14,9 @@ export default defineNuxtConfig({
       meta: [
         { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
         { name: "description", content: "Split group expenses with friends and see who owes whom." },
-        { name: "theme-color", content: "#f6f7f9", media: "(prefers-color-scheme: light)" },
-        { name: "theme-color", content: "#0d131c", media: "(prefers-color-scheme: dark)" },
+        // A single theme-color so every crawler reads the same value. app.vue swaps its content
+        // for the dark background once the app knows the colour mode.
+        { name: "theme-color", content: "#f6f7f9" },
         // Link previews. og:url and the canonical link are per page, added by the Worker (src/page-meta.ts).
         // The share image is rendered from design/og-image.html (see the comment there).
         { property: "og:type", content: "website" },
