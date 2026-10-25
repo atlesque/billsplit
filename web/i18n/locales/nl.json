@@ -100,6 +100,7 @@
     "gotLink": "Een groepslink van een vriend gekregen? Open hem om mee te doen in die groep.",
     "new": "Nieuwe groep",
     "spent": "{amount} uitgegeven",
+    "settledSection": "Verrekend",
     "toConfirm": "1 betaling te bevestigen | {count} betalingen te bevestigen"
   },
   "balance": {

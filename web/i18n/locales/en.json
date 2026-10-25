@@ -100,6 +100,7 @@
     "gotLink": "Got a group link from a friend? Open it to join their group.",
     "new": "New group",
     "spent": "{amount} spent",
+    "settledSection": "Settled up",
     "toConfirm": "1 payment to confirm | {count} payments to confirm"
   },
   "balance": {
