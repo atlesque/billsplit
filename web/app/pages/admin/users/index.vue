@@ -17,7 +17,7 @@
 const { t } = useI18n();
 const api = useApi();
 const { formatTime } = useFormat();
-const { data: users, error, pending } = useLoad(() => api<AdminRow[]>("/admin/users"));
+const { data: users, error, pending } = useLoad("admin/users", () => api<AdminRow[]>("/admin/users"));
 const columns = computed(() => [
   { id: "email", header: t("admin.email") },
   { id: "name", header: t("admin.name") },

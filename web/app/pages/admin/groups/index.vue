@@ -14,7 +14,7 @@
 const { t } = useI18n();
 const api = useApi();
 const { money, formatTime } = useFormat();
-const { data: groups, error, pending } = useLoad(() => api<AdminRow[]>("/admin/groups"));
+const { data: groups, error, pending } = useLoad("admin/groups", () => api<AdminRow[]>("/admin/groups"));
 const columns = computed(() => [
   { id: "group", header: t("admin.group") },
   { id: "owner", header: t("admin.owner") },

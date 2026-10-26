@@ -61,16 +61,30 @@ const joinError = ref("");
 const busy = ref(false);
 
 // Reload when the session changes, e.g. after signing in on this page.
-const { data: invite, error, pending } = useLoad(async () => {
-  const res = await api<Invite>(`/invites/${token.value}`);
-  if (res.alreadyMember) {
-    await navigateTo(`/g/${res.groupId}`, { replace: true });
-    return null;
-  }
-  state.who = res.suggestedMemberId ?? NEW;
-  state.newName = me.value?.name ?? "";
-  return res;
-}, () => [token.value, me.value?.id]);
+const { data: invite, error, pending } = useLoad(
+  () => ["invite", token.value, me.value?.id],
+  async () => {
+    const res = await api<Invite>(`/invites/${token.value}`);
+    if (res.alreadyMember) {
+      await navigateTo(`/g/${res.groupId}`, { replace: true });
+      return null;
+    }
+    return res;
+  },
+);
+// Fill in the form once per invite and session, so background refreshes don't undo the person's choice.
+let filledFor = "";
+watch(
+  invite,
+  (res) => {
+    const key = `${token.value}:${me.value?.id ?? ""}`;
+    if (!res || filledFor === key) return;
+    filledFor = key;
+    state.who = res.suggestedMemberId ?? NEW;
+    state.newName = me.value?.name ?? "";
+  },
+  { immediate: true },
+);
 
 const whoItems = computed(() => [
   ...(invite.value?.openPeople ?? []).map((p) => ({ label: t("invite.iAm", { name: p.name }), value: p.id })),

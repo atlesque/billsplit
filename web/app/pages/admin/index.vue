@@ -13,7 +13,7 @@
 <script setup lang="ts">
 const { t } = useI18n();
 const api = useApi();
-const { data: o, error, pending } = useLoad(() => api<Record<string, number>>("/admin/overview"));
+const { data: o, error, pending } = useLoad("admin/overview", () => api<Record<string, number>>("/admin/overview"));
 const tiles = computed(() => {
   const v = o.value!;
   return [

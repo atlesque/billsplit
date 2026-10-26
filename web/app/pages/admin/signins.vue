@@ -7,5 +7,5 @@
 
 <script setup lang="ts">
 const api = useApi();
-const { data: rows, error, pending } = useLoad(() => api<SignInRow[]>("/admin/signins"));
+const { data: rows, error, pending } = useLoad("admin/signins", () => api<SignInRow[]>("/admin/signins"));
 </script>
