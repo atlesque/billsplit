@@ -134,6 +134,18 @@ export interface AuditEntry {
   ip: string | null;
 }
 
+/** One row of the email log: every email the app tried to send. */
+export interface EmailRow {
+  id: string;
+  created_at: number;
+  to_email: string;
+  user_id: string | null;
+  kind: string;
+  subject: string;
+  status: string;
+  error: string | null;
+}
+
 export interface SignInRow {
   id: string;
   created_at: number;

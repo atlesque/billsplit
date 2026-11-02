@@ -7,6 +7,10 @@
         <ULink v-if="d.group.owner_id" :to="`/admin/users/${d.group.owner_id}`" class="text-primary">{{ d.group.owner_email }}</ULink>
         <span v-else>—</span>
       </p>
+      <p class="-mt-2 mb-4 text-sm text-muted">
+        {{ d.group.reminders_at ? $t("admin.remindersOn", { time: formatTime(d.group.reminders_at) }) : $t("admin.remindersOff") }}
+        <ULink to="/admin/emails?kind=payment_reminder" class="text-primary">{{ $t("admin.seeReminders") }}</ULink>
+      </p>
       <h3 class="mb-2 font-semibold text-highlighted">{{ $t("admin.people") }}</h3>
       <UTable :data="d.people" :columns="peopleColumns" class="mb-5 rounded-lg border border-default bg-default">
         <template #account-cell="{ row }">
@@ -15,6 +19,7 @@
         </template>
         <template #last-cell="{ row }"><span class="whitespace-nowrap">{{ formatTime(row.original.last_login_at) }}</span></template>
         <template #balance-cell="{ row }"><span class="whitespace-nowrap">{{ money(row.original.balance, d.group.currency) }}</span></template>
+        <template #reminded-cell="{ row }"><span class="whitespace-nowrap">{{ row.original.reminded_at ? formatTime(row.original.reminded_at) : "—" }}</span></template>
         <template #added-cell="{ row }"><span class="whitespace-nowrap">{{ formatTime(row.original.created_at) }}</span></template>
       </UTable>
       <h3 class="mb-2 font-semibold text-highlighted">{{ $t("admin.invites") }}</h3>
@@ -50,6 +55,7 @@ const peopleColumns = computed(() => [
   { id: "account", header: t("admin.account") },
   { id: "last", header: t("admin.lastSignin") },
   { id: "balance", header: t("admin.balance") },
+  { id: "reminded", header: t("admin.lastReminded") },
   { id: "added", header: t("admin.added") },
 ]);
 const inviteColumns = computed(() => [

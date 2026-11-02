@@ -282,7 +282,7 @@
     "overview": "Overzicht",
     "users": "Gebruikers",
     "groups": "Groepen",
-    "signins": "Inlogpogingen & e-mails",
+    "signins": "Inlogpogingen",
     "audit": "Auditlog",
     "noEntries": "Geen items.",
     "time": "Tijd",
@@ -349,7 +349,23 @@
     "filter": "Filteren",
     "loadMore": "Meer laden",
     "confirmTitle": "Bevestig dat jij het bent",
-    "confirmHelp": "Voor het beheergedeelte moet je inloggen via Cloudflare Access."
+    "confirmHelp": "Voor het beheergedeelte moet je inloggen via Cloudflare Access.",
+    "emails": "E-mails",
+    "emailsHelp": "Elke e-mail die BillSplit probeerde te versturen: inlogmails, betalingsmails en betalingsherinneringen, en of hij bezorgd is.",
+    "kind": "Soort",
+    "to": "Aan",
+    "subject": "Onderwerp",
+    "noEmails": "Geen e-mails.",
+    "remindersOn": "Betalingsherinneringen staan aan sinds {time}.",
+    "remindersOff": "Betalingsherinneringen staan uit.",
+    "seeReminders": "Alle herinneringen",
+    "lastReminded": "Laatst herinnerd",
+    "emailKind": {
+      "sign_in": "Inloggen",
+      "payment_sent": "Betaling verstuurd",
+      "payment_received": "Betaling ontvangen",
+      "payment_reminder": "Betalingsherinnering"
+    }
   },
   "status": {
     "verified": "geverifieerd",
