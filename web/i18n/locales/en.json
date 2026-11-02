@@ -524,5 +524,14 @@
     "toConfirm": "1 payment to confirm | {count} payments to confirm",
     "expenseCount": "No expenses yet | 1 expense | {count} expenses",
     "viewExpenses": "View expenses"
+  },
+  "reminders": {
+    "title": "Payment reminders",
+    "label": "Remind people who haven't paid",
+    "help": "Emails anyone who has owed money for more than a week and hasn't paid it back or marked it as sent. They get at most one reminder a week. People added by name only, without an account, don't get emails.",
+    "on": "Payment reminders are on: anyone who has owed money for more than a week gets a weekly email reminder until they pay or mark the payment as sent.",
+    "off": "Payment reminders are off. The group owner can turn them on.",
+    "turnedOn": "Payment reminders on",
+    "turnedOff": "Payment reminders off"
   }
 }

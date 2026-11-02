@@ -118,6 +118,16 @@ const nl: Record<string, string> = {
   "Open {group}": "{group} openen",
   "You get this email because you're in {group} on BillSplit.": "Je krijgt deze e-mail omdat je in {group} zit op BillSplit.",
 
+  // Payment reminders
+  "Reminder: you owe {amount} in {group}": "Herinnering: je moet nog {amount} betalen voor {group}",
+  "You've owed {name} {amount} in {group} for over a week.": "Je moet {name} al meer dan een week {amount} terugbetalen voor {group}.",
+  "You've owed money in {group} for over a week: {list}.": "Je moet al meer dan een week geld terugbetalen voor {group}: {list}.",
+  "{amount} to {name}": "{amount} aan {name}",
+  "Open BillSplit to pay it back and mark the payment as sent.": "Open BillSplit om het terug te betalen en de betaling als verstuurd te markeren.",
+  "Pay now": "Nu betalen",
+  "You get this reminder because payment reminders are on for {group}. The group owner can turn them off in the group settings.":
+    "Je krijgt deze herinnering omdat betalingsherinneringen aanstaan voor {group}. De eigenaar van de groep kan ze uitzetten in de groepsinstellingen.",
+
   // CSV export
   Date: "Datum",
   Type: "Soort",

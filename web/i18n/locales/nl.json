@@ -524,5 +524,14 @@
     "toConfirm": "1 betaling te bevestigen | {count} betalingen te bevestigen",
     "expenseCount": "Nog geen uitgaven | 1 uitgave | {count} uitgaven",
     "viewExpenses": "Uitgaven bekijken"
+  },
+  "reminders": {
+    "title": "Betalingsherinneringen",
+    "label": "Herinner mensen die niet betaald hebben",
+    "help": "Mailt iedereen die al meer dan een week geld moet terugbetalen en dat nog niet gedaan of als verstuurd gemarkeerd heeft. Ze krijgen hooguit één herinnering per week. Mensen die alleen met hun naam zijn toegevoegd, zonder account, krijgen geen e-mails.",
+    "on": "Betalingsherinneringen staan aan: wie al meer dan een week geld moet terugbetalen, krijgt elke week een herinnering per e-mail tot de betaling gedaan of als verstuurd gemarkeerd is.",
+    "off": "Betalingsherinneringen staan uit. De eigenaar van de groep kan ze aanzetten.",
+    "turnedOn": "Betalingsherinneringen staan aan",
+    "turnedOff": "Betalingsherinneringen staan uit"
   }
 }

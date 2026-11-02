@@ -33,9 +33,10 @@
   // Sign-in emails. EMAIL_FROM must be on a domain onboarded to Cloudflare Email Sending.
   "send_email": [{ "name": "EMAIL" }],
 
-  // Once a day: cleans up expired sign-in codes and sessions, and removes the attachments of
-  // archived groups that have been quiet for 90 days.
-  "triggers": { "crons": ["17 3 * * *"] },
+  // Once a day at 03:17 UTC: cleans up expired sign-in codes and sessions, and removes the
+  // attachments of archived groups that have been quiet for 90 days. At 08:00 UTC: sends payment
+  // reminders in groups that have them on (src/reminders.ts; src/index.ts tells the two apart).
+  "triggers": { "crons": ["17 3 * * *", "0 8 * * *"] },
 
   "vars": {
     "APP_URL": "https://billsplit.atlesque.dev",

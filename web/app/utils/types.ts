@@ -37,6 +37,8 @@ export interface Group {
   canManage: boolean;
   /** Nobody new can join while the group is locked. */
   locked: boolean;
+  /** People who have owed money for over a week get a weekly reminder email. */
+  reminders: boolean;
   shareToken: string | null;
   /** Archived groups are read-only. */
   archived_at: number | null;
