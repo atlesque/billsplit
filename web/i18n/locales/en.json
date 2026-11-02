@@ -282,7 +282,7 @@
     "overview": "Overview",
     "users": "Users",
     "groups": "Groups",
-    "signins": "Sign-ins & emails",
+    "signins": "Sign-ins",
     "audit": "Audit log",
     "noEntries": "No entries.",
     "time": "Time",
@@ -349,7 +349,23 @@
     "filter": "Filter",
     "loadMore": "Load more",
     "confirmTitle": "Confirm it's you",
-    "confirmHelp": "The admin area needs a Cloudflare Access sign-in."
+    "confirmHelp": "The admin area needs a Cloudflare Access sign-in.",
+    "emails": "Emails",
+    "emailsHelp": "Every email BillSplit tried to send: sign-in emails, payment emails and payment reminders, with whether it was delivered.",
+    "kind": "Type",
+    "to": "To",
+    "subject": "Subject",
+    "noEmails": "No emails.",
+    "remindersOn": "Payment reminders on since {time}.",
+    "remindersOff": "Payment reminders off.",
+    "seeReminders": "All reminders",
+    "lastReminded": "Last reminded",
+    "emailKind": {
+      "sign_in": "Sign-in",
+      "payment_sent": "Payment sent",
+      "payment_received": "Payment received",
+      "payment_reminder": "Payment reminder"
+    }
   },
   "status": {
     "verified": "verified",

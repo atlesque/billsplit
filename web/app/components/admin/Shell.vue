@@ -16,6 +16,7 @@ const items = computed(() => [
   { label: t("admin.users"), to: "/admin/users" },
   { label: t("admin.groups"), to: "/admin/groups" },
   { label: t("admin.signins"), to: "/admin/signins" },
+  { label: t("admin.emails"), to: "/admin/emails" },
   { label: t("admin.audit"), to: "/admin/audit" },
 ]);
 </script>

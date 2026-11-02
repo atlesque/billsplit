@@ -97,7 +97,7 @@ export async function listGroups(env: Env, url: URL): Promise<Response> {
 
 export async function getGroup(env: Env, groupId: string): Promise<Response> {
   const group = await env.DB.prepare(
-    `SELECT g.id, g.name, g.description, g.currency, g.created_at, u.id AS owner_id, u.email AS owner_email, u.name AS owner_name
+    `SELECT g.id, g.name, g.description, g.currency, g.created_at, g.reminders_at, u.id AS owner_id, u.email AS owner_email, u.name AS owner_name
      FROM groups g LEFT JOIN users u ON u.id = g.created_by WHERE g.id = ?`,
   )
     .bind(groupId)
@@ -105,7 +105,7 @@ export async function getGroup(env: Env, groupId: string): Promise<Response> {
   if (!group) throw new HttpError(404, "Group not found");
   const [people, invites, audit] = await env.DB.batch([
     env.DB.prepare(
-      `SELECT m.id, m.name, m.created_at, u.id AS user_id, u.email, u.last_login_at,
+      `SELECT m.id, m.name, m.created_at, m.reminded_at, u.id AS user_id, u.email, u.last_login_at,
          COALESCE((SELECT SUM(amount_cents) FROM expenses WHERE paid_by = m.id), 0)
            - COALESCE((SELECT SUM(amount_cents) FROM expense_shares WHERE member_id = m.id), 0) AS balance
        FROM members m LEFT JOIN users u ON u.id = m.user_id WHERE m.group_id = ? ORDER BY m.created_at`,
@@ -138,6 +138,21 @@ export async function listSignIns(env: Env, url: URL): Promise<Response> {
     .bind(q)
     .all<SignInRow & Record<string, unknown>>();
   return Response.json(results.map(withStatus));
+}
+
+/** Every email the app tried to send (sign-in, payment and reminder emails), newest first. */
+export async function listEmails(env: Env, url: URL): Promise<Response> {
+  const q = `%${(url.searchParams.get("q") ?? "").trim().toLowerCase()}%`;
+  const kind = url.searchParams.get("kind") ?? "";
+  const { results } = await env.DB.prepare(
+    `SELECT e.id, e.created_at, e.to_email, e.kind, e.subject, e.status, e.error, e.message_id, u.id AS user_id
+     FROM email_log e LEFT JOIN users u ON u.email = e.to_email
+     WHERE lower(e.to_email) LIKE ?1 AND (?2 = '' OR e.kind = ?2)
+     ORDER BY e.created_at DESC LIMIT 300`,
+  )
+    .bind(q, kind)
+    .all();
+  return Response.json(results);
 }
 
 export async function listAudit(env: Env, url: URL): Promise<Response> {

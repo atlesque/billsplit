@@ -94,6 +94,7 @@ async function route(request: Request, env: Env, url: URL, ctx: ExecutionContext
     if (sub === "users") return admin.listUsers(env, url);
     if (sub === "groups") return admin.listGroups(env, url);
     if (sub === "signins") return admin.listSignIns(env, url);
+    if (sub === "emails") return admin.listEmails(env, url);
     if (sub === "audit") return admin.listAudit(env, url);
     const item = /^(users|groups)\/([\w-]+)$/.exec(sub);
     if (item) return item[1] === "users" ? admin.getUser(env, item[2]) : admin.getGroup(env, item[2]);
