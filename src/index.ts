@@ -39,6 +39,7 @@ import { getInvite, getOrCreateGroupLink, joinInvite, revokeInvite } from "./inv
 import { isStaging, listTestUsers, mockSignIn } from "./mock-auth";
 import { withPageMeta } from "./page-meta";
 import { cancelPayment, confirmPayment, createPayment } from "./payments";
+import { sendPaymentReminders } from "./reminders";
 
 function errorResponse(error: unknown, lang: Lang): Response {
   if (error instanceof HttpError) {
@@ -50,6 +51,9 @@ function errorResponse(error: unknown, lang: Lang): Response {
   console.error(error);
   return Response.json({ error: tr(lang, "Something went wrong") }, { status: 500 });
 }
+
+/** Must match the second cron in wrangler.jsonc. */
+const REMINDERS_CRON = "0 8 * * *";
 
 const ARCHIVED_ALLOWED = new Set(["DELETE ", "POST leave", "POST archive", "DELETE archive"]);
 
@@ -189,7 +193,12 @@ export default {
     }
   },
 
-  async scheduled(_controller, env, ctx): Promise<void> {
+  async scheduled(controller, env, ctx): Promise<void> {
+    // Payment reminders go out in the morning (Central European time) rather than at night.
+    if (controller.cron === REMINDERS_CRON) {
+      ctx.waitUntil(sendPaymentReminders(env));
+      return;
+    }
     ctx.waitUntil(cleanup(env));
     ctx.waitUntil(removeStaleAttachments(env));
   },

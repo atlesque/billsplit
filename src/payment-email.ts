@@ -47,3 +47,20 @@ export function paymentEmailHtml(lang: string, intro: string, button: string, li
 <tr><td style="font-size:13px;color:#667085;line-height:1.5">${escapeHtml(footer)}</td></tr>
 </table></td></tr></table></body></html>`;
 }
+
+/** Subject, intro line and button text for a payment reminder. `owed` lists who they owe, amounts already formatted. */
+export function reminderEmailText(t: Translate, group: string, owed: { to: string; amount: string }[], total: string) {
+  const g = oneLine(group);
+  const intro =
+    owed.length === 1
+      ? t("You've owed {name} {amount} in {group} for over a week.", { name: oneLine(owed[0].to), amount: owed[0].amount, group: g })
+      : t("You've owed money in {group} for over a week: {list}.", {
+          group: g,
+          list: owed.map((o) => t("{amount} to {name}", { amount: o.amount, name: oneLine(o.to) })).join(", "),
+        });
+  return {
+    subject: t("Reminder: you owe {amount} in {group}", { amount: total, group: g }),
+    intro: `${intro} ${t("Open BillSplit to pay it back and mark the payment as sent.")}`,
+    button: t("Pay now"),
+  };
+}

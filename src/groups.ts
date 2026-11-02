@@ -18,6 +18,8 @@ export type Group = {
   attachments_removed_at: number | null;
   /** Set while the group is locked: nobody new can join. */
   locked_at: number | null;
+  /** Set while payment reminders are on (src/reminders.ts). */
+  reminders_at: number | null;
 };
 type MemberRow = {
   id: string;
@@ -41,7 +43,7 @@ function currency(value: unknown): string {
 /** Loads a group the user belongs to, or 404s without revealing whether it exists. */
 export async function groupForUser(env: Env, groupId: string, user: User): Promise<{ group: Group; meId: string }> {
   const row = await env.DB.prepare(
-    `SELECT g.id, g.name, g.description, g.currency, g.created_by, g.created_at, g.locked_at, g.archived_at, g.attachments_removed_at, m.id AS me_id
+    `SELECT g.id, g.name, g.description, g.currency, g.created_by, g.created_at, g.locked_at, g.reminders_at, g.archived_at, g.attachments_removed_at, m.id AS me_id
      FROM groups g JOIN members m ON m.group_id = g.id AND m.user_id = ?
      WHERE g.id = ?`,
   )
@@ -185,6 +187,7 @@ export async function getGroup(env: Env, user: User, groupId: string): Promise<R
     group: {
       ...group,
       locked: Boolean(group.locked_at),
+      reminders: Boolean(group.reminders_at),
       isOwner: group.created_by === user.id,
       canManage,
       shareToken: canManage && !archived ? shareToken : null,
@@ -275,13 +278,17 @@ export async function updateGroup(request: Request, env: Env, user: User, groupI
   const name = body.name === undefined ? group.name : text(body.name, "Group name", { max: 80 });
   const description = body.description === undefined ? group.description : optionalText(body.description, "Description", 300);
   const cur = body.currency === undefined ? group.currency : currency(body.currency);
-  await env.DB.prepare("UPDATE groups SET name = ?, description = ?, currency = ? WHERE id = ?")
-    .bind(name, description, cur, groupId)
+  const hadReminders = Boolean(group.reminders_at);
+  const reminders = body.reminders === undefined ? hadReminders : body.reminders === true;
+  const remindersAt = reminders === hadReminders ? group.reminders_at : reminders ? now() : null;
+  await env.DB.prepare("UPDATE groups SET name = ?, description = ?, currency = ?, reminders_at = ? WHERE id = ?")
+    .bind(name, description, cur, remindersAt, groupId)
     .run();
   const changes: Record<string, unknown> = {};
   if (name !== group.name) changes.name = { from: group.name, to: name };
   if (description !== group.description) changes.description = { from: group.description, to: description };
   if (cur !== group.currency) changes.currency = { from: group.currency, to: cur };
+  if (reminders !== hadReminders) changes.reminders = { from: hadReminders, to: reminders };
   if (Object.keys(changes).length) await audit(env, request, user, "group.updated", { groupId, target: groupId, details: changes });
   return Response.json({ ok: true });
 }

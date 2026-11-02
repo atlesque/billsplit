@@ -17,6 +17,7 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 - **People without the app** can be added by name and included in splits. If they join later, they pick their name from the list.
 - **Flexible splits.** Split equally, by shares, or by exact amounts. Leftover cents are spread fairly, so shares always add up to the total. You can also record payments between people.
 - **Balances and settle-up.** See who is owed what and a short list of payments that settles everyone. “Mark paid” records a payment.
+- **Payment reminders.** The group owner can turn them on in the group settings. Anyone with an account who has owed money in the group for more than a week, without paying anything back or marking a payment as sent, then gets an email reminder, at most once a week.
 - **CSV export** per group.
 - **English and Dutch.** The app follows the browser language and has a language switcher in the header; the choice is remembered on that device. Error messages, the sign-in email and the CSV export follow the same language.
 - **Admin area** at `/admin`, behind Cloudflare Access and limited to emails listed in `ADMIN_EMAILS`. It shows users, groups with their people and links (including how many joined through each), every sign-in request with its email delivery and verification status, and the full audit log.
@@ -29,7 +30,7 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 - **D1** for users, sessions, groups, people, invites, expenses, the email log and the audit log (`migrations/`).
 - **Cloudflare Email Service** (`send_email` binding) for sign-in emails.
 - **R2** (`FILES` binding, bucket `billsplit-attachments`) for expense attachments: PDFs and images up to 10 MB, served only to the group's members.
-- A daily cron trigger removes expired sessions and sign-in requests older than 90 days, and the attachments of archived groups that have had no activity for 90 days.
+- A daily cron trigger removes expired sessions and sign-in requests older than 90 days, and the attachments of archived groups that have had no activity for 90 days. A second daily run, at 08:00 UTC, sends payment reminders.
 
 ## Security notes
 

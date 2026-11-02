@@ -34,6 +34,22 @@
       </template>
     </UCard>
 
+    <!-- Payment reminders: the owner (or an admin) turns them on or off; everyone else sees whether they're on. -->
+    <UCard v-if="!group.archived_at">
+      <h2 class="text-lg font-semibold text-highlighted">{{ $t("reminders.title") }}</h2>
+      <USwitch
+        v-if="editable"
+        class="mt-3"
+        :model-value="group.reminders"
+        :label="$t('reminders.label')"
+        :description="$t('reminders.help')"
+        :loading="savingReminders"
+        :disabled="savingReminders"
+        @update:model-value="setReminders"
+      />
+      <p v-else class="mt-1 text-sm text-muted">{{ $t(group.reminders ? "reminders.on" : "reminders.off") }}</p>
+    </UCard>
+
     <UCard>
       <h2 class="text-lg font-semibold text-highlighted">{{ $t("settings.export") }}</h2>
       <p class="mt-1 mb-3 text-sm text-muted">{{ $t("settings.exportHelp") }}</p>
@@ -102,6 +118,20 @@ async function save() {
     error.value = (err as Error).message;
   } finally {
     busy.value = false;
+  }
+}
+
+const savingReminders = ref(false);
+async function setReminders(on: boolean) {
+  savingReminders.value = true;
+  try {
+    await api(`/groups/${group.value.id}`, { method: "PATCH", body: { reminders: on } });
+    toast.add({ title: t(on ? "reminders.turnedOn" : "reminders.turnedOff"), color: "success" });
+    emit("changed");
+  } catch (err) {
+    toast.add({ title: (err as Error).message, color: "error" });
+  } finally {
+    savingReminders.value = false;
   }
 }
 
