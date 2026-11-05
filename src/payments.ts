@@ -6,8 +6,10 @@
 import { audit } from "./audit";
 import type { User } from "./auth";
 import { groupForUser } from "./groups";
-import { cents, HttpError, now, randomId, readJson } from "./http";
+import { cents, HttpError, now, randomId, readJson, sha256 } from "./http";
 import { sendPaymentEmail } from "./notify";
+import { CONFIRM_LINK_DAYS } from "./payment-email";
+import { paymentLinkState } from "./payment-link";
 
 /** Hands background work (emails) to the runtime so the response doesn't wait for it. */
 export type Defer = (promise: Promise<unknown>) => void;
@@ -15,6 +17,7 @@ export type Defer = (promise: Promise<unknown>) => void;
 export type PaymentStatus = "sent" | "not_received" | "failed" | "received";
 const OPEN = "('sent', 'not_received')";
 const FAILED_SHOWN_FOR = 30 * 24 * 3600 * 1000;
+const CONFIRM_LINK_TTL = CONFIRM_LINK_DAYS * 24 * 3600 * 1000;
 
 type PaymentRow = {
   id: string;
@@ -91,11 +94,13 @@ export async function createPayment(request: Request, env: Env, user: User, grou
   const t = now();
   // The recipient confirms, unless they are the one recording it or have no account to confirm with.
   const confirmed = to.id === meId || !to.user_id;
+  // The recipient's email links to a page for confirming just this payment (see paymentLinkView).
+  const linkToken = confirmed ? null : randomId(18);
   await env.DB.batch([
     env.DB.prepare(
-      `INSERT INTO payments (id, group_id, from_member, to_member, amount_cents, status, created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'sent', ?, ?, ?)`,
-    ).bind(id, groupId, from.id, to.id, amount, user.id, t, t),
+      `INSERT INTO payments (id, group_id, from_member, to_member, amount_cents, status, created_by, created_at, updated_at, confirm_token_hash, confirm_expires_at)
+       VALUES (?, ?, ?, ?, ?, 'sent', ?, ?, ?, ?, ?)`,
+    ).bind(id, groupId, from.id, to.id, amount, user.id, t, t, linkToken && (await sha256(linkToken)), linkToken && t + CONFIRM_LINK_TTL),
     ...(confirmed ? recordStatements(env, groupId, { id, from: from.id, to: to.id, amount }, user) : []),
   ]);
   await audit(env, request, user, confirmed ? "payment.recorded" : "payment.sent", {
@@ -107,7 +112,8 @@ export async function createPayment(request: Request, env: Env, user: User, grou
   const notify = confirmed ? from : to;
   if (notify.user_id && notify.user_id !== user.id) {
     const kind = confirmed ? "payment_received" : "payment_sent";
-    defer(sendPaymentEmail(env, { kind, userId: notify.user_id, groupId, from: from.name, to: to.name, amountCents: amount }));
+    const path = linkToken ? `/confirm-payment/${linkToken}` : undefined;
+    defer(sendPaymentEmail(env, { kind, userId: notify.user_id, groupId, from: from.name, to: to.name, amountCents: amount, path }));
   }
   return Response.json({ id, status: confirmed ? "received" : "sent" }, { status: 201 });
 }
@@ -137,24 +143,99 @@ export async function confirmPayment(request: Request, env: Env, user: User, gro
   if (p.status !== "sent" && p.status !== "not_received") throw new HttpError(400, "This payment is already closed");
 
   if (status === "received") {
-    const results = await env.DB.batch(recordStatements(env, groupId, { id: p.id, from: p.from_member, to: p.to_member, amount: p.amount_cents }, user));
-    if (!results[2].meta.changes) throw new HttpError(400, "This payment is already closed");
+    await markReceived(request, env, user, groupId, p, defer);
   } else {
     await env.DB.prepare(`UPDATE payments SET status = ?, updated_at = ? WHERE id = ? AND status IN ${OPEN}`)
       .bind(status, now(), p.id)
       .run();
+    await audit(env, request, user, `payment.${status}`, {
+      groupId,
+      target: p.id,
+      details: { from: p.from_name, to: p.to_name, amount: p.amount_cents },
+    });
   }
-  await audit(env, request, user, `payment.${status}`, {
+  return Response.json({ id: p.id, status });
+}
+
+type OpenPayment = { id: string; from_member: string; to_member: string; amount_cents: number; from_name: string; from_user: string | null; to_name: string };
+
+/** The recipient confirms an open payment: it is recorded, and the payer hears that it arrived. */
+async function markReceived(request: Request, env: Env, user: User, groupId: string, p: OpenPayment, defer: Defer, via?: string) {
+  const results = await env.DB.batch(recordStatements(env, groupId, { id: p.id, from: p.from_member, to: p.to_member, amount: p.amount_cents }, user));
+  if (!results[2].meta.changes) throw new HttpError(400, "This payment is already closed");
+  await audit(env, request, user, "payment.received", {
     groupId,
     target: p.id,
-    details: { from: p.from_name, to: p.to_name, amount: p.amount_cents },
+    details: { from: p.from_name, to: p.to_name, amount: p.amount_cents, ...(via && { via }) },
   });
-  if (status === "received" && p.from_user && p.from_user !== user.id) {
+  if (p.from_user && p.from_user !== user.id) {
     defer(
       sendPaymentEmail(env, { kind: "payment_received", userId: p.from_user, groupId, from: p.from_name, to: p.to_name, amountCents: p.amount_cents }),
     );
   }
-  return Response.json({ id: p.id, status });
+}
+
+// The confirm link from the "payment sent" email (/confirm-payment/:token). It works only for the
+// one payment it was made for, only for the account that payment went to, and only for
+// CONFIRM_LINK_TTL. The page shows the payment and confirms it with a button, never on load, so
+// email link scanners can't confirm anything.
+
+type LinkRow = OpenPayment & {
+  group_id: string;
+  group_name: string;
+  currency: string;
+  status: PaymentStatus;
+  to_user: string | null;
+  created_at: number;
+  confirmed_at: number | null;
+  confirm_expires_at: number;
+};
+
+async function loadLink(env: Env, token: string): Promise<LinkRow | null> {
+  return env.DB.prepare(
+    `SELECT p.id, p.group_id, p.from_member, p.to_member, p.amount_cents, p.status, p.created_at, p.confirmed_at, p.confirm_expires_at,
+       g.name AS group_name, g.currency, f.name AS from_name, f.user_id AS from_user, r.name AS to_name, r.user_id AS to_user
+     FROM payments p JOIN groups g ON g.id = p.group_id JOIN members f ON f.id = p.from_member JOIN members r ON r.id = p.to_member
+     WHERE p.confirm_token_hash = ?`,
+  )
+    .bind(await sha256(token))
+    .first<LinkRow>();
+}
+
+function linkView(p: LinkRow | null, user: User) {
+  const state = paymentLinkState(p, user.id, now());
+  if (!p || state === "wrong_account") return { state, linkDays: CONFIRM_LINK_DAYS };
+  return {
+    state,
+    linkDays: CONFIRM_LINK_DAYS,
+    payment: {
+      groupId: p.group_id,
+      groupName: p.group_name,
+      currency: p.currency,
+      from: p.from_name,
+      to: p.to_name,
+      amount: p.amount_cents,
+      status: p.status,
+      sentAt: p.created_at,
+      confirmedAt: p.confirmed_at,
+      expiresAt: p.confirm_expires_at,
+    },
+  };
+}
+
+export async function getPaymentLink(env: Env, user: User, token: string): Promise<Response> {
+  return Response.json(linkView(await loadLink(env, token), user));
+}
+
+/** The Confirm button on the link's page. Answers with the page's new state. */
+export async function confirmPaymentLink(request: Request, env: Env, user: User, token: string, defer: Defer): Promise<Response> {
+  const p = await loadLink(env, token);
+  const state = paymentLinkState(p, user.id, now());
+  if (state === "wrong_account") throw new HttpError(403, "This link is for someone else's account");
+  if (state === "expired") throw new HttpError(410, "This link has expired. Confirm the payment in the group instead.");
+  if (state !== "open") throw new HttpError(400, "This payment is already closed");
+  await markReceived(request, env, user, p!.group_id, p!, defer, "email link");
+  return Response.json(linkView(await loadLink(env, token), user));
 }
 
 /** The sender (or whoever recorded it) withdraws a payment that hasn't been received. */

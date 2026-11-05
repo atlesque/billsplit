@@ -38,7 +38,7 @@ import { requestLang, tr, type Lang } from "./i18n";
 import { getInvite, getOrCreateGroupLink, joinInvite, revokeInvite } from "./invites";
 import { isStaging, listTestUsers, mockSignIn } from "./mock-auth";
 import { withPageMeta } from "./page-meta";
-import { cancelPayment, confirmPayment, createPayment } from "./payments";
+import { cancelPayment, confirmPayment, confirmPaymentLink, createPayment, getPaymentLink } from "./payments";
 import { sendPaymentReminders } from "./reminders";
 
 function errorResponse(error: unknown, lang: Lang): Response {
@@ -109,6 +109,11 @@ async function route(request: Request, env: Env, url: URL, ctx: ExecutionContext
     if (method === "POST") return createGroup(request, env, user);
   }
   if (m && m[2] && method === "POST") return joinInvite(request, env, user, m[1]);
+
+  // The confirm link in a "payment sent" email. Signed-out visitors sign in first, then come back.
+  m = /^\/api\/payment-links\/([\w-]+)$/.exec(path);
+  if (m && method === "GET") return getPaymentLink(env, user, m[1]);
+  if (m && method === "POST") return confirmPaymentLink(request, env, user, m[1], (p) => ctx.waitUntil(p));
 
   m = /^\/api\/groups\/([\w-]+)\/expenses\/([\w-]+)\/attachments$/.exec(path);
   if (m && method === "POST") {

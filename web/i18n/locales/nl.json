@@ -489,6 +489,32 @@
       "failed": "Gemarkeerd als mislukt"
     }
   },
+  "confirmPayment": {
+    "eyebrow": "Betaling bevestigen",
+    "says": "Volgens {name} is dit bedrag naar je gestuurd.",
+    "from": "Van",
+    "to": "Aan",
+    "toYou": "{name} (jij)",
+    "amount": "Bedrag",
+    "group": "Groep",
+    "sentAt": "Verstuurd",
+    "confirmedAt": "Bevestigd",
+    "notReceivedBefore": "Je hebt deze betaling als nog niet ontvangen gemarkeerd. Bevestig hem zodra het geld op je rekening staat.",
+    "checkBank": "Kijk eerst op je bankrekening. Zodra je bevestigt, telt de betaling mee in de saldi van de groep.",
+    "confirm": "Betaling bevestigen",
+    "openGroup": "{group} openen",
+    "doneTitle": "Betaling bevestigd",
+    "alreadyTitle": "Deze betaling is al bevestigd",
+    "doneHelp": "De betaling telt mee in de saldi van de groep. Je hoeft niets meer te doen.",
+    "failedTitle": "Deze betaling is als mislukt gemarkeerd",
+    "failedHelp": "De betaling telt niet mee in de saldi. {name} kan een nieuwe betaling markeren zodra er opnieuw betaald is.",
+    "wrongTitle": "Deze link is voor iemand anders",
+    "wrongHelp": "Je bent ingelogd als {email}. Alleen de persoon aan wie de betaling is gestuurd, kan hem met deze link bevestigen.",
+    "otherAccount": "Inloggen met een ander account",
+    "expiredTitle": "Deze link is verlopen",
+    "expiredHelp": "Links in betalingsmails werken {days} dagen. Je kunt de betaling nog steeds bevestigen in {group}.",
+    "goneHelp": "Links in betalingsmails werken {days} dagen en stoppen als een betaling wordt geannuleerd. Betalingen die op jou wachten, vind je in je groepen."
+  },
   "person": {
     "open": "Uitgaven en betalingen van {name} tonen",
     "youTitle": "Jouw saldo",

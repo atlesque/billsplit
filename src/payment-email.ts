@@ -1,6 +1,9 @@
 // Pure helpers for the payment emails (src/notify.ts), with no imports so they can be unit tested
 // in plain Node. Text goes through `t`, which is `tr` from src/i18n.ts bound to the reader's language.
 
+/** How many days the confirm link in a "payment sent" email works. The group page can confirm the payment after that. */
+export const CONFIRM_LINK_DAYS = 14;
+
 type Translate = (text: string, params?: Record<string, string | number>) => string;
 
 export const escapeHtml = (value: string) =>

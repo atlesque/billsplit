@@ -76,6 +76,10 @@ const nl: Record<string, string> = {
   "Only {name} can confirm this payment": "Alleen {name} kan deze betaling bevestigen",
   "This payment is already closed": "Deze betaling is al afgerond",
   "Only {name} can cancel this payment": "Alleen {name} kan deze betaling annuleren",
+  "This link is for someone else's account": "Deze link is voor het account van iemand anders",
+  "The button works for {days} days. After that, you can confirm the payment in the group.":
+    "De knop werkt {days} dagen. Daarna kun je de betaling in de groep bevestigen.",
+  "This link has expired. Confirm the payment in the group instead.": "Deze link is verlopen. Bevestig de betaling in de groep.",
   "Choose a file to attach": "Kies een bestand om toe te voegen",
   "Files can be at most {max} MB": "Bestanden mogen maximaal {max} MB zijn",
   "Attach a PDF or an image (JPEG, PNG, WebP or GIF)": "Voeg een pdf of een afbeelding toe (JPEG, PNG, WebP of GIF)",

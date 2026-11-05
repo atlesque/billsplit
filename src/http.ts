@@ -57,5 +57,5 @@ export async function sha256(value: string): Promise<string> {
 
 export const now = () => Date.now();
 
-/** Shortens invite tokens in app paths (e.g. /join/abcd…) for logs and the admin view. */
-export const maskPath = (path: string) => path.replace(/(\/join\/[\w-]{4})[\w-]+/, "$1…");
+/** Shortens link tokens in app paths (e.g. /join/abcd… or /confirm-payment/abcd…) for logs and the admin view. */
+export const maskPath = (path: string) => path.replace(/(\/(?:join|confirm-payment)\/[\w-]{4})[\w-]+/, "$1…");
