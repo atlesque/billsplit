@@ -489,6 +489,32 @@
       "failed": "Marked as failed"
     }
   },
+  "confirmPayment": {
+    "eyebrow": "Confirm a payment",
+    "says": "{name} says they sent you this amount.",
+    "from": "From",
+    "to": "To",
+    "toYou": "{name} (you)",
+    "amount": "Amount",
+    "group": "Group",
+    "sentAt": "Sent",
+    "confirmedAt": "Confirmed",
+    "notReceivedBefore": "You marked this payment as not received yet. Confirm it once the money is in your account.",
+    "checkBank": "Check your bank account first. Once you confirm, the payment counts towards the balances in the group.",
+    "confirm": "Confirm payment",
+    "openGroup": "Open {group}",
+    "doneTitle": "Payment confirmed",
+    "alreadyTitle": "This payment is already confirmed",
+    "doneHelp": "It counts towards the balances in the group. There's nothing left to do.",
+    "failedTitle": "This payment was marked as failed",
+    "failedHelp": "It doesn't count towards the balances. {name} can mark a new payment once they've paid.",
+    "wrongTitle": "This link is for someone else",
+    "wrongHelp": "You're signed in as {email}. Only the person the payment was sent to can confirm it with this link.",
+    "otherAccount": "Sign in with another account",
+    "expiredTitle": "This link has expired",
+    "expiredHelp": "Links in payment emails work for {days} days. You can still confirm the payment in {group}.",
+    "goneHelp": "Links in payment emails work for {days} days, and stop working when a payment is cancelled. Payments waiting for you are in your groups."
+  },
   "person": {
     "open": "Show expenses and payments for {name}",
     "youTitle": "Your balance",

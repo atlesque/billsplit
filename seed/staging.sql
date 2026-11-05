@@ -77,6 +77,15 @@ INSERT OR IGNORE INTO payments (id, group_id, from_member, to_member, amount_cen
   ('test-ghent-cara-alex', 'test-ghent', 'test-ghent-cara', 'test-ghent-alex', 5000, 'sent', NULL, 'test-cara', 1790400000000, 1790400000000, NULL, NULL),
   ('test-ski-alex-bob', 'test-ski', 'test-ski-alex', 'test-ski-bob', 40000, 'received', 'test-ski-payment', 'test-alex', 1740000000000, 1740000000000, 'test-bob', 1740000000000);
 
+-- Confirm links from the "payment sent" email, never expiring here:
+--   /confirm-payment/test-confirm-cara-to-alex  open for Alex (anyone else sees "for someone else")
+--   /confirm-payment/test-confirm-alex-to-bob   already confirmed, for Bob
+-- Any other token shows the expired page. Only the SHA-256 of a token is stored.
+UPDATE payments SET confirm_token_hash = '877f6657e53b811652642701146571c69eda4a024ad9426e00247b6936f980eb', confirm_expires_at = 253402300799000
+  WHERE id = 'test-ghent-cara-alex' AND confirm_token_hash IS NULL;
+UPDATE payments SET confirm_token_hash = '8393f8f6fb54e024e8bef29eea28b21238599469a0b9113a0a11d0f40af0ff81', confirm_expires_at = 253402300799000
+  WHERE id = 'test-ski-alex-bob' AND confirm_token_hash IS NULL;
+
 -- Each group's share link (multi_use, never expires).
 INSERT OR IGNORE INTO invites (id, group_id, token, member_id, label, created_by, created_at, expires_at, multi_use) VALUES
   ('test-ghent-link', 'test-ghent', 'test-ghent-share-link', NULL, '', 'test-alex', 1790100000000, 253402300799000, 1),

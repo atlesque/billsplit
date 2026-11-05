@@ -5,7 +5,7 @@
 
 import { now, randomId } from "./http";
 import { LANGS, tr, type Lang } from "./i18n";
-import { formatAmount, oneLine, paymentEmailHtml, paymentEmailText, reminderEmailText } from "./payment-email";
+import { CONFIRM_LINK_DAYS, formatAmount, oneLine, paymentEmailHtml, paymentEmailText, reminderEmailText } from "./payment-email";
 
 export type PaymentEmail = {
   kind: "payment_sent" | "payment_received";
@@ -16,6 +16,8 @@ export type PaymentEmail = {
   from: string;
   to: string;
   amountCents: number;
+  /** Where the button goes, from the app's root. Defaults to the group page. */
+  path?: string;
 };
 
 type Recipient = { email: string; lang: Lang; groupName: string; currency: string };
@@ -28,6 +30,7 @@ async function sendGroupEmail(
   userId: string,
   groupId: string,
   content: (r: Recipient, amount: (cents: number) => string) => Content,
+  path = `/g/${groupId}`,
 ): Promise<boolean> {
   // Staging has no email sending.
   if (env.STAGING === "true" || !env.EMAIL) return false;
@@ -41,7 +44,7 @@ async function sendGroupEmail(
     const lang: Lang = (LANGS as string[]).includes(row.lang) ? (row.lang as Lang) : "en";
     const r = { email: row.email, lang, groupName: row.group_name, currency: row.currency };
     const text = content(r, (cents) => formatAmount(cents, row.currency, lang));
-    const link = `${env.APP_URL}/g/${groupId}`;
+    const link = `${env.APP_URL}${path}`;
     const log = (status: "sent" | "failed", extra: { error?: string; messageId?: string } = {}) =>
       env.DB.prepare(
         `INSERT INTO email_log (id, to_email, kind, subject, status, error, message_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -74,8 +77,13 @@ async function sendGroupEmail(
 export async function sendPaymentEmail(env: Env, email: PaymentEmail): Promise<void> {
   await sendGroupEmail(env, email.kind, email.userId, email.groupId, (r, amount) => ({
     ...paymentEmailText(email.kind, (t, p) => tr(r.lang, t, p), { from: email.from, to: email.to, amount: amount(email.amountCents), group: r.groupName }),
-    footer: tr(r.lang, "You get this email because you're in {group} on BillSplit.", { group: oneLine(r.groupName) }),
-  }));
+    footer: [
+      email.path && email.kind === "payment_sent" ? tr(r.lang, "The button works for {days} days. After that, you can confirm the payment in the group.", { days: CONFIRM_LINK_DAYS }) : "",
+      tr(r.lang, "You get this email because you're in {group} on BillSplit.", { group: oneLine(r.groupName) }),
+    ]
+      .filter(Boolean)
+      .join(" "),
+  }), email.path);
 }
 
 /** Reminds someone what they still owe in a group. Resolves to whether the email went out. */

@@ -113,6 +113,26 @@ export interface Payment {
   canCancel: boolean;
 }
 
+/** What the confirm link in a "payment sent" email shows (/api/payment-links/:token). */
+export interface PaymentLink {
+  state: "open" | "confirmed" | "failed" | "expired" | "wrong_account";
+  /** How many days these links work. */
+  linkDays: number;
+  /** Left out for someone else's link, and for a link that doesn't exist (any more). */
+  payment?: {
+    groupId: string;
+    groupName: string;
+    currency: string;
+    from: string;
+    to: string;
+    amount: number;
+    status: PaymentStatus;
+    sentAt: number;
+    confirmedAt: number | null;
+    expiresAt: number;
+  };
+}
+
 export interface GroupData {
   group: Group;
   members: Member[];

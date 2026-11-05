@@ -17,6 +17,7 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 - **People without the app** can be added by name and included in splits. If they join later, they pick their name from the list.
 - **Flexible splits.** Split equally, by shares, or by exact amounts. Leftover cents are spread fairly, so shares always add up to the total. You can also record payments between people.
 - **Balances and settle-up.** See who is owed what and a short list of payments that settles everyone. “Mark paid” records a payment.
+- **Confirm from the email.** When someone marks a payment to you as sent, the email's button opens a page with that payment's details and a Confirm button. The link only works for that one payment and only for the account it was sent to, for 14 days. After that, or once the payment is confirmed, failed or cancelled, the page says so and links back to the group and your groups.
 - **Payment reminders.** The group owner can turn them on in the group settings. Anyone with an account who has owed money in the group for more than a week, without paying anything back or marking a payment as sent, then gets an email reminder, at most once a week.
 - **CSV export** per group.
 - **English and Dutch.** The app follows the browser language and has a language switcher in the header; the choice is remembered on that device. Error messages, the sign-in email and the CSV export follow the same language.
@@ -36,6 +37,7 @@ Split group expenses with friends: a Tricount-style app that runs on Cloudflare 
 
 - Sign-in codes, link tokens and session tokens are stored only as SHA-256 hashes. The email log never stores the code.
 - Codes expire after 15 minutes, allow 5 wrong attempts, and work once. Each email address can request at most 5 codes per 15 minutes.
+- Payment confirm links carry a random 144-bit token, stored only as a hash, and confirm nothing on GET. The signed-in account must be the payment's recipient; anyone else sees only that the link is for someone else.
 - Sign-in links open a confirmation page instead of signing in on GET, so email link scanners can't use them up.
 - Sessions are `HttpOnly; Secure; SameSite=Lax` cookies valid for 90 days. Cross-origin mutating requests are refused.
 - Every group endpoint checks that the signed-in user is in that group. The admin area needs two things: a Cloudflare Access login (an Access application covers `/admin` and `/api/admin`) and a BillSplit session, both for an `ADMIN_EMAILS` address. The Worker verifies the Access JWT (`Cf-Access-Jwt-Assertion`) itself, so the admin API stays closed even if a request gets past Access. It returns 404 to non-admins and fails closed while `ACCESS_AUD` is empty. Invite tokens are masked in admin views and logs.
